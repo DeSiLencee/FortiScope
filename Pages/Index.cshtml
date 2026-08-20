@@ -1,0 +1,98 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Ağ İzleme Paneli";
+}
+
+<div class="dashboard" aria-live="polite">
+    <section class="dashboard-heading">
+        <div>
+            <p class="eyebrow">GENEL BAKIŞ</p>
+            <h1>Ağ İzleme Paneli</h1>
+            <p class="heading-copy">FortiGate cihazınızın performansını ve port trafiğini anlık izleyin.</p>
+        </div>
+        <div class="device-card">
+            <span class="device-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7.5h16v9H4zM8 11h2m2 0h2m2 0h1M7 16.5v2m10-2v2"/></svg></span>
+            <div><span class="device-name" id="deviceName">FortiGate-ARM64-KVM</span><span class="device-ip" id="deviceIp">192.168.64.2</span></div>
+            <span class="connection-status is-disconnected" id="deviceStatus"><i></i> Bağlantı bekleniyor</span>
+        </div>
+    </section>
+
+    <section class="metric-grid" aria-label="Cihaz ölçümleri">
+        <article class="metric-card" id="cpuCard">
+            <div class="metric-top"><span class="metric-label">CPU Kullanımı</span><span class="metric-icon cpu-icon">CPU</span></div>
+            <div class="metric-reading"><strong id="cpuValue">--</strong><span>%</span></div>
+            <div class="progress-track"><span id="cpuBar"></span></div><p id="cpuHint">Veri bekleniyor</p>
+        </article>
+        <article class="metric-card" id="ramCard">
+            <div class="metric-top"><span class="metric-label">RAM Kullanımı</span><span class="metric-icon ram-icon">RAM</span></div>
+            <div class="metric-reading"><strong id="ramValue">--</strong><span>%</span></div>
+            <div class="progress-track"><span id="ramBar"></span></div><p id="ramHint">Veri bekleniyor</p>
+        </article>
+        <article class="metric-card">
+            <div class="metric-top"><span class="metric-label">Aktif Session</span><span class="metric-icon session-icon">↔</span></div>
+            <div class="metric-reading"><strong id="sessionValue">--</strong></div><p>Aktif bağlantı sayısı</p>
+        </article>
+        <article class="metric-card busiest-card">
+            <div class="metric-top"><span class="metric-label">En Yoğun Port</span><span class="metric-icon port-icon">⇅</span></div>
+            <div class="metric-reading port-reading"><strong id="busiestPort">--</strong></div><p><span id="busiestTraffic">--</span> toplam trafik</p>
+        </article>
+    </section>
+
+    <div class="history-toolbar">
+        <div class="range-selector" role="group" aria-label="Grafik zaman aralığı">
+            <button type="button" class="is-active" data-history-range="live">Canlı</button>
+            <button type="button" data-history-range="1h">Son 1 saat</button>
+            <button type="button" data-history-range="6h">Son 6 saat</button>
+            <button type="button" data-history-range="24h">Son 24 saat</button>
+        </div>
+        <label class="history-interface-select">Interface
+            <select id="historyInterfaceSelect"><option value="">Interface seçin</option></select>
+        </label>
+    </div>
+
+    <section class="charts-grid" aria-label="Performans grafikleri">
+        <article class="chart-panel">
+            <div class="chart-heading">
+                <div><p class="chart-kicker">PERFORMANS</p><h2>Canlı Sistem Performansı</h2></div>
+                <div class="chart-values"><span class="cpu-series">CPU <strong id="chartCpuValue">--%</strong></span><span class="ram-series">RAM <strong id="chartRamValue">--%</strong></span></div>
+            </div>
+            <div class="chart-canvas-wrap"><canvas id="systemChart" role="img" aria-label="CPU ve RAM kullanım zaman serisi grafiği"></canvas><p class="chart-empty" id="systemChartEmpty">Bu zaman aralığı için yeterli geçmiş veri yok</p></div>
+            <div class="chart-footer"><span class="chart-live"><i></i> Canlı izleme</span><time id="systemChartTime">--:--:--</time></div>
+        </article>
+        <article class="chart-panel">
+            <div class="chart-heading">
+                <div><p class="chart-kicker">AĞ · SNMP</p><h2>Canlı Ağ Trafiği</h2></div>
+                <div class="chart-values"><span class="incoming-series">Gelen <strong id="chartIncomingValue">--</strong></span><span class="outgoing-series">Giden <strong id="chartOutgoingValue">--</strong></span></div>
+            </div>
+            <div class="chart-canvas-wrap"><canvas id="networkChart" role="img" aria-label="Gelen ve giden ağ trafiği zaman serisi grafiği"></canvas><p class="chart-empty" id="networkChartEmpty">Bu zaman aralığı için yeterli geçmiş veri yok</p></div>
+            <div class="chart-footer"><span class="chart-live"><i></i> <span id="networkChartUnit">Kbps</span></span><time id="networkChartTime">--:--:--</time></div>
+        </article>
+    </section>
+
+    <div class="content-grid">
+        <section class="panel traffic-panel">
+            <div class="panel-heading"><div><p class="eyebrow">CANLI SNMP VERİSİ</p><h2>Interface Trafiği</h2></div><span class="live-badge" id="interfaceDataStatus"><i></i> Bekleniyor</span></div>
+            <div class="interface-filters" role="group" aria-label="Interface filtresi">
+                <button type="button" data-interface-filter="all">Tümü</button>
+                <button type="button" class="is-active" data-interface-filter="physical">Fiziksel</button>
+                <button type="button" data-interface-filter="virtual">Sanal</button>
+                <button type="button" data-interface-filter="up">Aktif</button>
+                <button type="button" data-interface-filter="down">Kapalı</button>
+            </div>
+            <div class="table-wrap"><table>
+                <thead><tr><th>Index</th><th>Interface</th><th>Tür</th><th>Alias</th><th>Admin</th><th>Link</th><th>Hız</th><th>Gelen</th><th>Giden</th><th>Toplam / Kullanım</th></tr></thead>
+                <tbody id="portTableBody"><tr><td colspan="10" class="loading-cell">SNMP interface verileri yükleniyor…</td></tr></tbody>
+            </table></div>
+        </section>
+        <aside class="panel alerts-panel">
+            <div class="panel-heading"><div><p class="eyebrow">SİSTEM DURUMU</p><h2>Aktif Uyarılar</h2></div><span class="alert-count" id="alertCount">0</span></div>
+            <div class="alerts-list" id="alertsList"><p class="empty-alerts">Veriler kontrol ediliyor…</p></div>
+        </aside>
+    </div>
+    <p class="last-update">Son güncelleme: <time id="lastUpdated">--:--:--</time><span id="connectionMessage"></span></p>
+</div>
+
+@section Scripts {
+    <script src="~/js/dashboard.js" asp-append-version="true"></script>
+}
