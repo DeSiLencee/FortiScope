@@ -2,208 +2,207 @@
 
 **Lightweight Multi-Device FortiGate Monitoring & Alerting Platform**
 
-FortiScope is a lightweight monitoring platform for Fortinet FortiGate firewalls. It uses SNMPv3 to collect system and interface metrics and provides historical monitoring, alerting, notifications and device management through a centralized web dashboard.
+FortiScope is a focused monitoring platform for Fortinet FortiGate firewalls. It collects system and interface metrics over SNMPv3, presents live and historical data in a centralized dashboard, and tracks threshold-based alerts across multiple devices. The application is designed for straightforward deployment in private networks, labs, and internal infrastructure environments.
 
 ## Features
 
-- Multi-device FortiGate monitoring
+- Multi-device FortiGate inventory and monitoring
 - SNMPv3 `authPriv` communication
-- CPU, memory and active session metrics
-- Interface bandwidth and utilization monitoring
+- Live CPU, memory, and active session metrics
+- Physical and virtual interface monitoring
+- Interface bandwidth and utilization measurements
 - Historical system and interface metrics
-- Configurable threshold alerts and recovery tracking
-- Persistent alert history
-- SMTP email notifications
-- Add, edit, enable, disable, test and delete device management
-- Fleet overview and top interfaces
-- SQLite persistence and automatic migrations
-- Docker deployment
+- Add, edit, enable, disable, test, and delete device management
+- Fleet health overview and centralized active alerts
+- Configurable CPU, memory, connectivity, and interface traffic thresholds
+- Warning, critical, escalation, reminder, and recovery transitions
+- Persistent alert/event history with device and interface context
+- SMTP email alert and recovery notifications
+- Top Interfaces view across enabled and connected devices
+- SQLite persistence with automatic Entity Framework Core migrations
+- Docker and Docker Compose deployment
+- Dashboard access through the Docker host/server IP
+- Application health endpoint independent of FortiGate availability
+- Automated tests for monitoring calculations, persistence, settings, and alert behavior
+
+## Architecture
+
+```mermaid
+flowchart TB
+    Users[Browser / Users] -->|HTTP 8080 or HTTPS reverse proxy| Web
+
+    subgraph Host[FortiScope Linux Server / VM]
+        Docker[Docker Bridge Network]
+        Web[ASP.NET Core 8 / Razor Pages]
+        Monitor[Multi-Device Monitoring Service]
+        Alerts[Alert Engine]
+        DB[(SQLite)]
+
+        Docker --> Web
+        Web --> Monitor
+        Web --> DB
+        Monitor --> DB
+        Monitor --> Alerts
+        Alerts --> DB
+    end
+
+    Monitor -->|SNMPv3 UDP 161| FGT1[FortiGate 01]
+    Monitor -->|SNMPv3 UDP 161| FGT2[FortiGate 02]
+    Monitor -->|SNMPv3 UDP 161| FGTN[FortiGate N]
+    Alerts -->|SMTP| Email[Email Notifications]
+```
+
+FortiScope polls each enabled device independently. Live snapshots drive the dashboard and alert engine, while sampled metrics and alert transitions are stored in SQLite for historical views.
 
 ## Tech Stack
 
-- ASP.NET Core 8 and Razor Pages
-- Entity Framework Core 8 and SQLite
-- SNMPv3 with SharpSnmpLib
+- ASP.NET Core 8
+- Razor Pages
+- Entity Framework Core 8
+- SQLite
+- SharpSnmpLib and SNMPv3
 - Vanilla JavaScript and CSS
+- xUnit
 - Docker and Docker Compose
 
-## Quick Start
+## Quick Start with Docker
 
-Requirements: Git and Docker with the Compose plugin.
+Requirements: Git, Docker Engine, and the Docker Compose plugin.
 
 ```bash
-git clone <YOUR_REPOSITORY_URL>
+git clone https://github.com/DeSiLencee/FortiScope.git
 cd FortiScope
 cp .env.example .env
 ```
 
-Edit `.env` and replace both `CHANGE_ME` values with the SNMPv3 authentication and privacy passwords configured on your FortiGate devices. Then start FortiScope:
+Open `.env` and replace the SNMP authentication and privacy password placeholders. Do not commit this file.
 
 ```bash
-docker compose up -d
-docker compose ps
-```
-
-Open [http://localhost:8080](http://localhost:8080). If `FORTISCOPE_PORT` was changed, use that host port instead. On a new installation the dashboard starts without devices; use **Add FortiGate** to register the first firewall.
-
-Useful commands:
-
-```bash
-docker compose logs -f fortiscope
-docker compose down
 docker compose up -d --build
 ```
 
+Open the dashboard:
+
+- Server or VM: `http://SERVER_IP:8080`
+- Local machine: [http://localhost:8080](http://localhost:8080)
+
+On the first start, the database is created automatically and the device inventory is empty. Select **Add FortiGate**, enter the device management/internal IP and SNMPv3 username, then run **Test Connection**.
+
 ## Deploy on a Linux Server
 
-Install Docker Engine and the Docker Compose plugin, then verify them:
+Verify that Docker and Compose are available:
 
 ```bash
 docker --version
 docker compose version
 ```
 
-Clone, configure and start FortiScope:
+Clone and configure the application:
 
 ```bash
-git clone https://github.com/<USER>/FortiScope.git
+git clone https://github.com/DeSiLencee/FortiScope.git
 cd FortiScope
 cp .env.example .env
 nano .env
 docker compose up -d --build
 ```
 
-Check startup, health and logs:
+Check the service:
 
 ```bash
 docker compose ps
 docker compose logs -f fortiscope
 curl http://localhost:8080/health
-curl http://localhost:8080/api/devices
 ```
 
-Find the server address with `hostname -I` or `ip addr`. From another computer on the same network, open `http://SERVER_IP:8080`. For example, use `http://192.168.1.50:8080` for a server at `192.168.1.50`. The port mapping binds to all server interfaces, not only loopback.
+Find the server address:
 
-If UFW is enabled, permit web access from the intended network:
+```bash
+hostname -I
+# or
+ip addr
+```
+
+Allow the dashboard port when a host firewall is enabled. For Ubuntu UFW:
 
 ```bash
 sudo ufw allow 8080/tcp
 ```
 
-Do not expose UDP 161 inbound from the public internet. FortiScope requires outbound UDP 161 from its Docker bridge network through the server to each FortiGate:
+Users on the permitted network can then open `http://SERVER_IP:8080`. The container uses Docker bridge networking and sends outbound SNMPv3 requests to routable FortiGate management addresses over UDP 161; host networking is not required.
 
-```text
-FortiScope server/container -- SNMPv3 UDP 161 --> FortiGate management IP
-```
+## FortiGate SNMP Requirements
 
-Docker's normal bridge/NAT routing is sufficient; `network_mode: host` is not required. The FortiGate management address must be routable from the server, and FortiGate should allow SNMP only from the FortiScope server's trusted IP/network.
+- SNMPv3 must be enabled on each FortiGate.
+- The SNMP user must use `authPriv` security.
+- Authentication and privacy protocols must match the FortiScope configuration.
+- UDP 161 must be reachable from the FortiScope server/container network.
+- The FortiScope server IP or trusted management network must be allowed by the FortiGate.
+- The username entered in Device Management must match the FortiGate SNMPv3 user.
+- Authentication and privacy passwords must match the values stored in the local FortiScope `.env` file.
 
-## Required FortiGate Configuration
-
-- Enable SNMPv3 on the FortiGate.
-- Use an `authPriv` user with SHA1 authentication and AES128 privacy.
-- Allow the FortiScope host in the FortiGate SNMP configuration.
-- Ensure UDP port 161 is reachable from the Docker host/container network.
-- Use the same authentication/privacy passwords in FortiGate and FortiScope `.env`.
-- Enter each device's IP address and SNMP username through **Add FortiGate**.
-
-A generic FortiOS configuration outline is shown below. Confirm command syntax against the FortiOS version used in your environment:
-
-```text
-config system snmp user
-    edit "SNMP_USERNAME"
-        set security-level auth-priv
-        set auth-proto sha
-        set auth-pwd AUTH_PASSWORD
-        set priv-proto aes
-        set priv-pwd PRIVACY_PASSWORD
-    next
-end
-```
-
-Restrict SNMP access to `FORTISCOPE_SERVER_IP` using the appropriate FortiGate interface and trusted-host configuration. FortiScope does not require an SNMPv1/v2c community.
+Use placeholders such as `FORTISCOPE_SERVER_IP`, `SNMP_USERNAME`, `AUTH_PASSWORD`, and `PRIVACY_PASSWORD` when documenting local FortiGate configuration. Never place real credentials in the repository.
 
 ## Configuration
 
-Docker Compose reads local values from `.env`:
+Docker Compose reads the following values from `.env`:
 
-| Variable | Default | Purpose |
+| Variable | Default | Description |
 | --- | --- | --- |
-| `FORTISCOPE_PORT` | `8080` | Dashboard port exposed on the Docker host |
+| `FORTISCOPE_PORT` | `8080` | TCP port published on the Docker host |
 | `ASPNETCORE_ENVIRONMENT` | `Production` | ASP.NET Core runtime environment |
-| `HttpsRedirectionEnabled` | `false` | Enable only when ASP.NET itself has a usable HTTPS endpoint |
+| `HttpsRedirectionEnabled` | `false` | Keep disabled for direct HTTP or when a reverse proxy terminates HTTPS |
 | `Snmp__Port` | `161` | FortiGate SNMP UDP port |
-| `Snmp__Version` | `v3` | SNMP protocol version |
+| `Snmp__Version` | `v3` | Supported SNMP version |
 | `Snmp__SecurityLevel` | `authPriv` | Required SNMPv3 security level |
-| `Snmp__AuthenticationProtocol` | `SHA1` | Authentication protocol |
-| `Snmp__PrivacyProtocol` | `AES128` | Privacy protocol |
-| `Snmp__TimeoutMilliseconds` | `3000` | Per-request timeout |
+| `Snmp__AuthenticationProtocol` | `SHA1` | Supported authentication protocol |
+| `Snmp__PrivacyProtocol` | `AES128` | Supported privacy protocol |
+| `Snmp__TimeoutMilliseconds` | `3000` | SNMP request timeout |
 | `Snmp__AuthPassword` | required | Shared SNMPv3 authentication password |
 | `Snmp__PrivacyPassword` | required | Shared SNMPv3 privacy password |
 
-Double underscores are the standard ASP.NET Core environment-variable separator. Device IP addresses, names and SNMP usernames are managed through the dashboard. SMTP configuration is managed through the Email Notifications dialog and encrypted using ASP.NET Core Data Protection; it does not belong in `.env`.
-
-Never commit `.env`. The repository contains only `.env.example` placeholders.
+Double underscores are the standard ASP.NET Core environment-variable separator. Device names, IP addresses, usernames, and enabled states are managed through the dashboard. SMTP settings are stored through the Email Notifications dialog and protected with ASP.NET Core Data Protection.
 
 ## Data Persistence
 
-Compose mounts the Docker named volume `fortiscope_data` at `/app/data` in the container. It contains:
+Docker Compose mounts the named volume `fortiscope_data` at `/app/data`. It retains:
 
-- `fortiscope.db` and its SQLite journal files
-- Data Protection keys used to decrypt stored SMTP credentials
+- Registered devices
+- System and interface metric history
+- Alert settings and alert history
+- Email notification settings
+- Data Protection keys used for stored SMTP credentials
 
-Database migrations run automatically during startup. The first start creates an empty database, default alert settings and default disabled email settings. Container replacement and `docker compose down` do not delete the named volume. Do not use `docker compose down -v` unless you intend to erase FortiScope data. Back up the volume before upgrades.
+The application creates the SQLite database and applies pending migrations during startup. Container recreation and `docker compose down` preserve the volume. Running `docker compose down -v` deletes it and should only be used when data removal is intentional.
 
-The named volume is initialized for the image's non-root `app` user, avoiding Linux bind-mount ownership problems. Inspect it with `docker volume inspect fortiscope_data`.
+## API Highlights
 
-## Health Check
+| Method and path | Purpose |
+| --- | --- |
+| `GET /health` | Application health independent of device connectivity |
+| `GET /api/devices` | Registered FortiGate inventory |
+| `GET /api/devices/monitoring/current` | Fleet-level current monitoring summaries |
+| `GET /api/devices/{id}/monitoring/current` | Current snapshot for one device |
+| `GET /api/history/system?deviceId={id}&range=1h` | Historical CPU, memory, session, and connection data |
+| `GET /api/alerts/history?deviceId={id}&range=24h` | Filterable alert transition history |
 
-`GET /health` confirms that the web application is running and returns:
+Device management, interface history, settings, and connection-test endpoints are also used by the dashboard. All frontend requests use same-origin relative paths.
 
-```json
-{"status":"healthy"}
-```
-
-Docker uses this endpoint for container health. FortiGate availability is intentionally excluded, so an offline device does not mark the container unhealthy.
-
-## Security Notes
-
-- Use SNMPv3 `authPriv`; do not expose SNMPv1/v2c communities.
-- Do not commit `.env`, SQLite files, Data Protection keys or local user secrets.
-- Restrict UDP 161 to the FortiScope host and trusted management networks.
-- Protect and back up the `fortiscope_data` volume because it contains monitoring data, settings and encryption keys.
-- Use a dedicated least-privilege SMTP account.
-- Place FortiScope behind an HTTPS reverse proxy before internet-facing deployment.
-- FortiScope v1 has no application authentication; restrict network access accordingly.
-
-Do not publish TCP 8080 directly to the public internet. Prefer a private LAN or VPN. For internet-facing use, terminate HTTPS and enforce access controls at a reverse proxy:
+## Project Structure
 
 ```text
-Internet -> HTTPS 443 -> Nginx/Caddy/Traefik -> FortiScope 8080
+Configuration/   Strongly typed SNMP and monitoring options
+Data/            EF Core context, entities, and database migrations
+Models/          API requests, responses, and monitoring snapshots
+Services/        SNMP polling, history, alerts, persistence, and email logic
+Pages/           Razor Pages dashboard and shared layout
+wwwroot/         Vanilla JavaScript, CSS, and static assets
+tests/           xUnit test suite
 ```
 
-Minimal Nginx example:
+## Development
 
-```nginx
-server {
-    listen 80;
-    server_name fortiscope.example.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-Configure TLS on the reverse proxy. Keep `HttpsRedirectionEnabled=false` when the proxy handles HTTPS; direct HTTP container deployments then remain reachable without redirecting to a nonexistent certificate endpoint.
-
-## Local .NET Development
-
-Requirements: .NET 8 SDK and optionally the EF Core CLI.
+Requirements: .NET 8 SDK.
 
 ```bash
 dotnet restore
@@ -212,61 +211,50 @@ dotnet user-secrets set "Snmp:PrivacyPassword" "YOUR_PRIVACY_PASSWORD"
 dotnet run
 ```
 
-Missing SNMP credentials or unreachable devices do not crash the application. The dashboard and `/health` remain available while monitoring reports the configuration or connection error.
-
-Run validation with:
+Build and test:
 
 ```bash
 dotnet build
 dotnet test tests/FortiScope.Tests/FortiScope.Tests.csproj
-node --check wwwroot/js/dashboard.js
 ```
 
-## Project Structure
+Missing SNMP credentials or unreachable devices do not stop the web application. The dashboard and `/health` remain available while monitoring reports the relevant configuration or connection state.
 
-```text
-Configuration/       Strongly typed application options
-Data/                EF Core context, entities and migrations
-Models/              API and monitoring models
-Pages/               Razor Pages dashboard and shared layout
-Services/            SNMP polling, history, alerts and notifications
-tests/                xUnit test project
-wwwroot/              JavaScript, CSS and static assets
-Dockerfile            Production multi-stage image
-docker-compose.yml    Single-service deployment and persistent storage
+## Docker
+
+```bash
+docker compose build
+docker compose up -d
+docker compose ps
+docker compose logs -f fortiscope
 ```
 
-## Architecture
+The application listens on port `8080` inside the container. `FORTISCOPE_PORT` controls the host-side port, and the default Compose mapping is accessible through the server's network interfaces.
 
-```mermaid
-flowchart TB
-    Users[Users / Browser] -->|TCP 8080 or HTTPS via proxy| Server[FortiScope Linux Server / VM]
-    subgraph Server
-        Docker[Docker Bridge Network]
-        Web[ASP.NET Core :8080]
-        Monitor[Multi-device Monitoring Service]
-        Alerts[Alert Engine]
-        DB[(SQLite + Data Protection Keys)]
-        Docker --> Web
-        Web --> Monitor
-        Web --> DB
-        Monitor --> DB
-        Monitor --> Alerts
-        Alerts --> DB
-    end
-    Monitor -->|SNMPv3 UDP 161| FG1[FGT-01 / 10.x]
-    Monitor -->|SNMPv3 UDP 161| FG2[FGT-02 / 10.x]
-    Alerts --> Email[SMTP Notifications]
+## Security Notes
+
+- Use SNMPv3 `authPriv` rather than SNMPv1/v2c communities.
+- Never commit `.env`, SQLite files, Data Protection keys, or local user secrets.
+- Do not expose UDP 161 to the public internet.
+- Restrict FortiGate SNMP access to the FortiScope server IP or trusted management network.
+- FortiScope v1 does not include built-in user authentication; do not publish port 8080 directly to the public internet.
+- Prefer a private LAN, management VPN, or an HTTPS reverse proxy with appropriate access controls.
+- Keep SMTP and SNMP secrets out of application logs and source control.
+- Back up the `fortiscope_data` volume before upgrades or host migration.
+
+## Limitations / v1 Scope
+
+- Monitoring is focused on Fortinet FortiGate devices and the SNMP/IF-MIB data they expose.
+- SNMPv3 `authPriv` with SHA1 authentication and AES128 privacy is the currently supported protocol profile.
+- SNMP authentication and privacy passwords are shared application-level configuration; device IP addresses and usernames are managed per device.
+- FortiScope v1 does not include built-in users, roles, or authentication.
+- The deployment model is intended primarily for private networks, labs, and internal monitoring environments.
+- Email notification delivery depends on an operator-provided SMTP service.
+
+## Testing
+
+The test suite covers interface-rate calculations, persistence policies, database migrations, device management, alert settings, notification decisions, alert history, and interface traffic eligibility/transitions.
+
+```bash
+dotnet test tests/FortiScope.Tests/FortiScope.Tests.csproj
 ```
-
-## Screenshots
-
-Screenshots are not included yet. Suggested additions:
-
-- `docs/screenshots/dashboard.png`
-- `docs/screenshots/device-management.png`
-- `docs/screenshots/alert-history.png`
-
-## License
-
-No project-level license file is currently included. Add an appropriate license before distributing or accepting external contributions.
