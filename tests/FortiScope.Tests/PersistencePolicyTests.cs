@@ -56,5 +56,5 @@ public sealed class PersistencePolicyTests
 
     private static MonitoringSnapshot CreateSnapshot(bool connected) => new(
         "FortiGate", "192.168.64.2", connected, 25, 40, 1000, [],
-        new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero), connected ? null : "Bağlantı yok");
+        new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero), connected ? null : "No connection");
 }

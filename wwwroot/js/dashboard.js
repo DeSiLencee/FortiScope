@@ -74,7 +74,7 @@
         const message = typeof body === "object" && body
             ? body.error || body.message || body.title
             : body;
-        throw new Error(message || `API isteği başarısız oldu (${response.status}).`);
+        throw new Error(message || `API request failed (${response.status}).`);
     }
 
     function setDeviceFormStatus(message, type = "") {
@@ -83,7 +83,7 @@
     }
 
     function getUserFacingError(error, fallback) {
-        if (error instanceof TypeError) return "Sunucuya ulaşılamadı. Ağ bağlantısını kontrol edip tekrar deneyin.";
+        if (error instanceof TypeError) return "The server could not be reached. Check your network connection and try again.";
         return error?.message || fallback;
     }
 
@@ -105,7 +105,7 @@
     }
 
     function getInterfaceSeverity(item) {
-        if (item.type !== "Fiziksel" || item.operStatus !== 1 || item.isMeasuring ||
+        if (item.type !== "Physical" || item.operStatus !== 1 || item.isMeasuring ||
             !Number.isFinite(item.speedMbps) || item.speedMbps <= 0 || !Number.isFinite(item.utilizationPercent))
             return "normal";
         return getMetricSeverity(item.utilizationPercent,
@@ -122,7 +122,7 @@
 
     function hasMeaningfulDownInterface(device) {
         return (device.interfaces || []).some(item =>
-            item.type === "Fiziksel" && item.adminStatus === 1 && item.operStatus === 2 &&
+            item.type === "Physical" && item.adminStatus === 1 && item.operStatus === 2 &&
             !String(item.name || "").toLowerCase().includes("fortilink"));
     }
 
@@ -158,7 +158,7 @@
                     message: `${item.name} Traffic ${formatPercent(item.utilizationPercent)}%` });
             });
             (device.interfaces || []).filter(item =>
-                item.type === "Fiziksel" && item.adminStatus === 1 && item.operStatus === 2 &&
+                item.type === "Physical" && item.adminStatus === 1 && item.operStatus === 2 &&
                 !String(item.name || "").toLowerCase().includes("fortilink"))
                 .forEach(item => alerts.push({ deviceId: device.id, severity: "warning", value: 0,
                     name: device.name, ipAddress: device.ipAddress, message: `${item.name} interface down` }));
@@ -226,7 +226,7 @@
                     <span class="history-severity-badge is-${String(item.severity).toLowerCase()}">${escapeHtml(item.severity)}</span>
                 </button>`).join("") : '<p class="fleet-alerts-empty">No measured physical interfaces available.</p>';
         } catch (error) {
-            elements.topInterfacesList.innerHTML = `<p class="fleet-alerts-empty is-unavailable">${escapeHtml(getUserFacingError(error, "Top interfaces yüklenemedi."))}</p>`;
+            elements.topInterfacesList.innerHTML = `<p class="fleet-alerts-empty is-unavailable">${escapeHtml(getUserFacingError(error, "Top interfaces could not be loaded."))}</p>`;
         }
     }
 
@@ -264,7 +264,7 @@
                 <span class="device-card-metrics">
                     <span><small>CPU</small><strong>${Number.isFinite(summary?.cpuUsage) ? `${summary.cpuUsage}%` : "-"}</strong></span>
                     <span><small>RAM</small><strong>${Number.isFinite(summary?.memoryUsage) ? `${summary.memoryUsage}%` : "-"}</strong></span>
-                    <span><small>Sessions</small><strong>${Number.isFinite(summary?.sessionCount) ? Number(summary.sessionCount).toLocaleString("tr-TR") : "-"}</strong></span>
+                    <span><small>Sessions</small><strong>${Number.isFinite(summary?.sessionCount) ? Number(summary.sessionCount).toLocaleString("en-US") : "-"}</strong></span>
                 </span>
                 <span class="device-actions-menu" data-device-actions-menu="${device.id}" hidden>
                     <button type="button" data-device-action="edit">Edit</button>
@@ -308,7 +308,7 @@
             if (requestVersion !== alertHistoryRequestVersion) return;
             elements.alertHistoryBody.innerHTML = events.length ? events.map(item =>
                 `<tr class="alert-history-row" data-history-device-id="${item.deviceId}" tabindex="0">
-                    <td><time datetime="${escapeHtml(item.occurredAtUtc)}">${escapeHtml(new Date(item.occurredAtUtc).toLocaleString("tr-TR"))}</time></td>
+                    <td><time datetime="${escapeHtml(item.occurredAtUtc)}">${escapeHtml(new Date(item.occurredAtUtc).toLocaleString("en-US"))}</time></td>
                     <td><strong>${escapeHtml(item.deviceName)}</strong><small>${escapeHtml(item.deviceIp)}</small></td>
                     <td><span class="history-event-badge is-${String(item.eventType).toLowerCase()}">${escapeHtml(item.eventType)}</span></td>
                     <td>${escapeHtml(String(item.alertType).replaceAll("_", " "))}</td>
@@ -319,7 +319,7 @@
                 : '<tr><td colspan="7" class="alert-history-empty">No alert events in the selected period.</td></tr>';
         } catch (error) {
             if (requestVersion !== alertHistoryRequestVersion) return;
-            elements.alertHistoryBody.innerHTML = `<tr><td colspan="7" class="alert-history-empty is-error">${escapeHtml(getUserFacingError(error, "Alert history yüklenemedi."))}</td></tr>`;
+            elements.alertHistoryBody.innerHTML = `<tr><td colspan="7" class="alert-history-empty is-error">${escapeHtml(getUserFacingError(error, "Alert history could not be loaded."))}</td></tr>`;
         }
     }
 
@@ -357,10 +357,10 @@
             renderFleetFromCache();
             return selectedDeviceId;
         } catch (error) {
-            console.error("Cihaz listesi alınamadı.", error);
+            console.error("Device list could not be retrieved.", error);
             fleetMonitoringAvailable = false;
             renderFleetOverview([], false);
-            elements.deviceList.innerHTML = `<p class="device-list-message is-error">${escapeHtml(getUserFacingError(error, "Cihazlar yüklenemedi."))}</p>`;
+            elements.deviceList.innerHTML = `<p class="device-list-message is-error">${escapeHtml(getUserFacingError(error, "Devices could not be loaded."))}</p>`;
             return selectedDeviceId;
         }
     }
@@ -383,8 +383,8 @@
         elements.sessionValue.textContent = "--";
         elements.busiestPort.textContent = "--";
         elements.busiestTraffic.textContent = "--";
-        elements.portTableBody.innerHTML = '<tr><td colspan="10" class="loading-cell">Cihaz verileri yükleniyor…</td></tr>';
-        elements.historyInterfaceSelect.innerHTML = '<option value="">Interface seçin</option>';
+        elements.portTableBody.innerHTML = '<tr><td colspan="10" class="loading-cell">Loading device data…</td></tr>';
+        elements.historyInterfaceSelect.innerHTML = '<option value="">Select an interface</option>';
         elements.chartCpuValue.textContent = "--%";
         elements.chartRamValue.textContent = "--%";
         elements.chartIncomingValue.textContent = "--";
@@ -394,10 +394,10 @@
         elements.lastUpdated.textContent = "--:--:--";
         const selected = availableDevices.find(device => device.id === selectedDeviceId);
         elements.connectionMessage.textContent = !selectedDeviceId ? "No FortiGate selected" :
-            selected?.enabled === false ? "Device is disabled." : "Cihaz verileri yükleniyor…";
+            selected?.enabled === false ? "Device is disabled." : "Loading device data…";
         elements.deviceName.textContent = selected?.name ?? "No FortiGate selected";
         elements.deviceIp.textContent = selected?.ipAddress ?? "--";
-        elements.deviceStatus.innerHTML = `<i></i> ${!selectedDeviceId ? "Cihaz seçilmedi" : selected?.enabled === false ? "Disabled" : "Bağlantı bekleniyor"}`;
+        elements.deviceStatus.innerHTML = `<i></i> ${!selectedDeviceId ? "No device selected" : selected?.enabled === false ? "Disabled" : "Waiting for connection"}`;
         elements.deviceStatus.classList.add("is-disconnected");
         updateAlerts([]);
         drawAllCharts();
@@ -467,7 +467,7 @@
         const id = editingDeviceId;
         elements.saveEditDevice.disabled = true;
         elements.saveEditDevice.textContent = "Saving...";
-        setModalStatus(elements.editDeviceStatus, "Cihaz güncelleniyor…");
+        setModalStatus(elements.editDeviceStatus, "Updating device…");
         try {
             const response = await fetch(`/api/devices/${encodeURIComponent(id)}`, { method: "PUT",
                 headers: { "Accept": "application/json", "Content-Type": "application/json" }, body: JSON.stringify(request) });
@@ -477,7 +477,7 @@
             if (selectedDeviceId === id) { resetDashboardForDevice(); await refreshDashboard(); }
             setManagementStatus("Device updated successfully.", "success");
         } catch (error) {
-            setModalStatus(elements.editDeviceStatus, getUserFacingError(error, "Cihaz güncellenemedi."), "error");
+            setModalStatus(elements.editDeviceStatus, getUserFacingError(error, "Device could not be updated."), "error");
         } finally {
             elements.saveEditDevice.disabled = false;
             elements.saveEditDevice.textContent = "Save Changes";
@@ -504,7 +504,7 @@
             await loadDevices(!device.enabled ? device.id : null);
             if (selectedDeviceId === device.id && device.enabled) { resetDashboardForDevice(); await refreshDashboard(); }
             setManagementStatus(`Device ${device.enabled ? "disabled" : "enabled"} successfully.`, "success");
-        } catch (error) { setManagementStatus(getUserFacingError(error, "Device state değiştirilemedi."), "error"); }
+        } catch (error) { setManagementStatus(getUserFacingError(error, "Device state could not be changed."), "error"); }
     }
 
     function openDeleteDevice(deviceId) {
@@ -538,7 +538,7 @@
             if (wasSelected || !selectedDeviceId) { resetDashboardForDevice(); await refreshDashboard(); }
             await loadAlertHistory();
             setManagementStatus("Device deleted successfully. Historical data was retained.", "success");
-        } catch (error) { setModalStatus(elements.deleteDeviceStatus, getUserFacingError(error, "Cihaz silinemedi."), "error"); }
+        } catch (error) { setModalStatus(elements.deleteDeviceStatus, getUserFacingError(error, "Device could not be deleted."), "error"); }
         finally { elements.confirmDeleteDevice.disabled = false; elements.confirmDeleteDevice.textContent = "Delete Device"; }
     }
 
@@ -578,8 +578,8 @@
             if (populateForm) populateAlertSettingsForm(currentAlertSettings);
             return true;
         } catch (error) {
-            console.error("Alert settings alınamadı.", error);
-            if (populateForm) setAlertSettingsStatus(getUserFacingError(error, "Alert settings yüklenemedi."), "error");
+            console.error("Alert settings could not be retrieved.", error);
+            if (populateForm) setAlertSettingsStatus(getUserFacingError(error, "Alert settings could not be loaded."), "error");
             return false;
         }
     }
@@ -596,7 +596,7 @@
         closeEmailSettingsModal();
         elements.alertSettingsModal.hidden = false;
         syncModalBodyState();
-        setAlertSettingsStatus("Settings yükleniyor…");
+        setAlertSettingsStatus("Loading settings…");
         elements.saveAlertSettings.disabled = true;
         const loaded = await loadAlertSettings(true);
         elements.saveAlertSettings.disabled = false;
@@ -634,7 +634,7 @@
         closeAlertSettingsModal();
         elements.emailSettingsModal.hidden = false;
         syncModalBodyState();
-        setEmailSettingsStatus("Email settings yükleniyor…");
+        setEmailSettingsStatus("Loading email settings…");
         elements.saveEmailSettings.disabled = true;
         try {
             const response = await fetch("/api/settings/email", {
@@ -646,7 +646,7 @@
             setEmailSettingsStatus("");
             elements.emailSettingsForm.elements.namedItem("smtpHost").focus();
         } catch (error) {
-            setEmailSettingsStatus(getUserFacingError(error, "Email settings yüklenemedi."), "error");
+            setEmailSettingsStatus(getUserFacingError(error, "Email settings could not be loaded."), "error");
         } finally { elements.saveEmailSettings.disabled = false; }
     }
 
@@ -678,7 +678,7 @@
         if (!elements.emailSettingsForm.reportValidity()) return;
         elements.saveEmailSettings.disabled = true;
         elements.saveEmailSettings.textContent = "Saving...";
-        setEmailSettingsStatus("Email settings kaydediliyor…");
+        setEmailSettingsStatus("Saving email settings…");
         try {
             const response = await fetch("/api/settings/email", {
                 method: "PUT", headers: { "Accept": "application/json", "Content-Type": "application/json" },
@@ -688,7 +688,7 @@
             populateEmailSettingsForm(settings);
             setEmailSettingsStatus("Email settings saved successfully.", "success");
         } catch (error) {
-            setEmailSettingsStatus(getUserFacingError(error, "Email settings kaydedilemedi."), "error");
+            setEmailSettingsStatus(getUserFacingError(error, "Email settings could not be saved."), "error");
         } finally {
             elements.saveEmailSettings.disabled = false;
             elements.saveEmailSettings.textContent = "Save Settings";
@@ -698,7 +698,7 @@
     async function sendTestEmail() {
         elements.testEmailSettings.disabled = true;
         elements.testEmailSettings.textContent = "Sending...";
-        setEmailSettingsStatus("Test email gönderiliyor…");
+        setEmailSettingsStatus("Sending test email…");
         try {
             const response = await fetch("/api/settings/email/test", {
                 method: "POST", headers: { "Accept": "application/json" }
@@ -706,7 +706,7 @@
             const result = await readApiResponse(response);
             setEmailSettingsStatus(result.message || "Test email sent successfully.", "success");
         } catch (error) {
-            setEmailSettingsStatus(getUserFacingError(error, "Test email gönderilemedi."), "error");
+            setEmailSettingsStatus(getUserFacingError(error, "Test email could not be sent."), "error");
         } finally {
             elements.testEmailSettings.disabled = false;
             elements.testEmailSettings.textContent = "Test Email";
@@ -729,7 +729,7 @@
         };
         elements.saveAlertSettings.disabled = true;
         elements.saveAlertSettings.textContent = "Saving...";
-        setAlertSettingsStatus("Alert settings kaydediliyor…");
+        setAlertSettingsStatus("Saving alert settings…");
         try {
             const response = await fetch("/api/settings/alerts", {
                 method: "PUT",
@@ -740,7 +740,7 @@
             renderFleetFromCache();
             setAlertSettingsStatus("Alert settings saved successfully.", "success");
         } catch (error) {
-            setAlertSettingsStatus(getUserFacingError(error, "Alert settings kaydedilemedi."), "error");
+            setAlertSettingsStatus(getUserFacingError(error, "Alert settings could not be saved."), "error");
         } finally {
             elements.saveAlertSettings.disabled = false;
             elements.saveAlertSettings.textContent = "Save Settings";
@@ -780,7 +780,7 @@
 
         elements.addDeviceSubmit.disabled = true;
         elements.addDeviceSubmit.textContent = "Adding...";
-        setDeviceFormStatus("Cihaz kaydediliyor…");
+        setDeviceFormStatus("Saving device…");
         let created = false;
 
         try {
@@ -798,7 +798,7 @@
             }
 
             elements.addDeviceSubmit.textContent = "Testing...";
-            setDeviceFormStatus("SNMP bağlantısı test ediliyor…");
+            setDeviceFormStatus("Testing SNMP connection…");
             const testResponse = await fetch(`/api/devices/${encodeURIComponent(device.id)}/test`, {
                 method: "POST", headers: { "Accept": "application/json" }
             });
@@ -807,7 +807,7 @@
             setDeviceFormStatus(`Connection successful${description}`, "success");
             elements.addDeviceForm.reset();
         } catch (error) {
-            setDeviceFormStatus(getUserFacingError(error, "İşlem tamamlanamadı. Lütfen tekrar deneyin."), "error");
+            setDeviceFormStatus(getUserFacingError(error, "The operation could not be completed. Please try again."), "error");
             if (created) await loadDevices();
         } finally {
             elements.addDeviceSubmit.disabled = false;
@@ -931,19 +931,19 @@
 
     function checkAlarms(data) {
         const alarms = [];
-        if (!data.connected) alarms.push({ title: "FortiGate bağlantısı kesildi", detail: data.errorMessage || "SNMP verisi alınamıyor." });
-        if (data.cpuUsage >= thresholds.cpu) alarms.push({ title: "Yüksek CPU kullanımı", detail: `CPU kullanımı %${data.cpuUsage} seviyesine ulaştı.` });
-        if (data.memoryUsage >= thresholds.ram) alarms.push({ title: "Yüksek RAM kullanımı", detail: `RAM kullanımı %${data.memoryUsage} seviyesine ulaştı.` });
+        if (!data.connected) alarms.push({ title: "FortiGate disconnected", detail: data.errorMessage || "SNMP data is unavailable." });
+        if (data.cpuUsage >= thresholds.cpu) alarms.push({ title: "High CPU usage", detail: `CPU usage reached ${data.cpuUsage}%.` });
+        if (data.memoryUsage >= thresholds.ram) alarms.push({ title: "High memory usage", detail: `Memory usage reached ${data.memoryUsage}%.` });
         data.interfaces.filter(item => getInterfaceSeverity(item) !== "normal").forEach(item => {
             const critical = getInterfaceSeverity(item) === "critical";
             alarms.push({
                 level: critical ? "critical" : "warning",
-                title: `${item.name} ${critical ? "kritik kullanım" : "yüksek kullanım"}`,
-                detail: `Interface kullanımı %${formatPercent(item.utilizationPercent)} seviyesinde.`
+                title: `${item.name} ${critical ? "critical utilization" : "high utilization"}`,
+                detail: `Interface utilization reached ${formatPercent(item.utilizationPercent)}%.`
             });
         });
         data.interfaces.filter(item => item.errorMessage).forEach(item =>
-            alarms.push({ level: "warning", title: `${item.name} verisi eksik`, detail: item.errorMessage }));
+            alarms.push({ level: "warning", title: `${item.name} data is incomplete`, detail: item.errorMessage }));
         return alarms;
     }
 
@@ -965,21 +965,21 @@
         const available = Number.isFinite(value);
         elements[`${name}Value`].textContent = available ? value : "--";
         elements[`${name}Bar`].style.width = available ? `${value}%` : "0%";
-        elements[`${name}Hint`].textContent = !available ? "SNMP verisi alınamadı" : value >= threshold ? "Eşik değeri aşıldı" : "Normal çalışma aralığı";
+        elements[`${name}Hint`].textContent = !available ? "SNMP data is unavailable" : value >= threshold ? "Threshold exceeded" : "Normal operating range";
         elements[`${name}Card`].classList.toggle("is-alert", available && value >= threshold);
         elements[`${name}Card`].classList.toggle("is-unavailable", !available);
     }
 
     function updatePortTable(interfaces, connected) {
         if (!interfaces.length) {
-            elements.portTableBody.innerHTML = `<tr><td colspan="10" class="loading-cell">${connected ? "Bu filtreye uygun interface bulunamadı." : "SNMP interface verisi alınamadı."}</td></tr>`;
+            elements.portTableBody.innerHTML = `<tr><td colspan="10" class="loading-cell">${connected ? "No interfaces match this filter." : "SNMP interface data is unavailable."}</td></tr>`;
             return;
         }
         elements.portTableBody.innerHTML = interfaces.map(item => {
             const statusClass = item.operStatus === 1 ? "status-up" : item.operStatus === 2 ? "status-down" : "status-unknown";
-            const traffic = item.isMeasuring ? "Ölçülüyor" : formatTraffic(item.totalMbps);
+            const traffic = item.isMeasuring ? "Measuring" : formatTraffic(item.totalMbps);
             const utilization = item.utilizationPercent == null ? "--" : `%${formatPercent(item.utilizationPercent)}`;
-            const typeClass = item.type === "Fiziksel" ? "type-physical" : item.type === "Sanal" ? "type-virtual" : "";
+            const typeClass = item.type === "Physical" ? "type-physical" : item.type === "Virtual" ? "type-virtual" : "";
             const trafficSeverity = getInterfaceSeverity(item);
             const trafficBadge = trafficSeverity === "normal" ? "" :
                 `<span class="interface-traffic-badge is-${trafficSeverity}">${trafficSeverity}</span>`;
@@ -988,11 +988,11 @@
                 <td><button type="button" class="port-name-button" data-history-interface="${item.index}">${escapeHtml(item.name)}</button>${trafficBadge}</td>
                 <td><span class="interface-type ${typeClass}">${escapeHtml(item.type)}</span></td>
                 <td>${escapeHtml(item.alias) || "--"}</td>
-                <td>${item.adminStatus === 1 ? "Açık" : item.adminStatus === 2 ? "Kapalı" : "Bilinmiyor"}</td>
+                <td>${item.adminStatus === 1 ? "Up" : item.adminStatus === 2 ? "Down" : "Unknown"}</td>
                 <td><span class="${statusClass}"><i></i>${escapeHtml(item.linkStatus)}</span></td>
                 <td>${item.speedMbps == null ? "--" : `${Number(item.speedMbps).toLocaleString("tr-TR")} Mbps`}</td>
-                <td class="traffic-number">${item.isMeasuring ? "Ölçülüyor" : `↓ ${formatTraffic(item.incomingMbps)}`}</td>
-                <td class="traffic-number">${item.isMeasuring ? "Ölçülüyor" : `↑ ${formatTraffic(item.outgoingMbps)}`}</td>
+                <td class="traffic-number">${item.isMeasuring ? "Measuring" : `↓ ${formatTraffic(item.incomingMbps)}`}</td>
+                <td class="traffic-number">${item.isMeasuring ? "Measuring" : `↑ ${formatTraffic(item.outgoingMbps)}`}</td>
                 <td class="total-traffic">${traffic}<small class="utilization">${utilization}</small></td>
             </tr>`;
         }).join("");
@@ -1000,8 +1000,8 @@
 
     function filterInterfaces(interfaces) {
         return interfaces.filter(item => {
-            if (activeInterfaceFilter === "physical") return item.type === "Fiziksel";
-            if (activeInterfaceFilter === "virtual") return item.type === "Sanal";
+            if (activeInterfaceFilter === "physical") return item.type === "Physical";
+            if (activeInterfaceFilter === "virtual") return item.type === "Virtual";
             if (activeInterfaceFilter === "up") return item.operStatus === 1;
             if (activeInterfaceFilter === "down") return item.operStatus === 2;
             return true;
@@ -1014,12 +1014,12 @@
 
     function updateHistoryInterfaceOptions(interfaces) {
         const currentValue = selectedInterfaceIndex?.toString() ?? "";
-        elements.historyInterfaceSelect.innerHTML = '<option value="">Interface seçin</option>' +
+        elements.historyInterfaceSelect.innerHTML = '<option value="">Select an interface</option>' +
             interfaces.map(item => `<option value="${item.index}">${escapeHtml(item.name)}</option>`).join("");
         if (currentValue && interfaces.some(item => item.index.toString() === currentValue)) {
             elements.historyInterfaceSelect.value = currentValue;
         } else if (interfaces.length) {
-            const preferred = interfaces.find(item => item.type === "Fiziksel") ?? interfaces[0];
+            const preferred = interfaces.find(item => item.type === "Physical") ?? interfaces[0];
             selectedInterfaceIndex = preferred.index;
             elements.historyInterfaceSelect.value = preferred.index.toString();
         }
@@ -1040,7 +1040,7 @@
         elements.alertCount.textContent = alarms.length;
         elements.alertsList.innerHTML = alarms.length
             ? alarms.map(alarm => `<article class="alert-item ${alarm.level === "warning" ? "is-warning" : ""}"><span class="alert-symbol">!</span><div><strong>${escapeHtml(alarm.title)}</strong><p>${escapeHtml(alarm.detail)}</p></div></article>`).join("")
-            : '<p class="empty-alerts"><span>✓</span>Aktif uyarı bulunmuyor.</p>';
+            : '<p class="empty-alerts"><span>✓</span>No active alerts.</p>';
     }
 
     function createHistoryPoint(data, timestamp = data.lastUpdated) {
@@ -1197,18 +1197,18 @@
         updateMetric("ram", data.memoryUsage, thresholds.ram);
         elements.sessionValue.textContent = Number.isFinite(data.sessionCount) ? Number(data.sessionCount).toLocaleString("tr-TR") : "--";
         elements.busiestPort.textContent = busiest?.name ?? "--";
-        elements.busiestTraffic.textContent = busiest ? (busiest.isMeasuring ? "Ölçülüyor" : formatTraffic(busiest.totalMbps)) : "--";
+        elements.busiestTraffic.textContent = busiest ? (busiest.isMeasuring ? "Measuring" : formatTraffic(busiest.totalMbps)) : "--";
         latestInterfaces = sortedInterfaces;
         latestConnectionState = data.connected;
         renderFilteredInterfaces();
         updateAlerts(checkAlarms(data));
         elements.deviceName.textContent = data.deviceName;
         elements.deviceIp.textContent = data.deviceIp;
-        elements.deviceStatus.innerHTML = `<i></i> ${data.connected ? "Bağlı" : "Bağlantı Kesildi"}`;
+        elements.deviceStatus.innerHTML = `<i></i> ${data.connected ? "Connected" : "Disconnected"}`;
         elements.deviceStatus.classList.toggle("is-disconnected", !data.connected);
-        elements.interfaceDataStatus.innerHTML = `<i></i> ${data.connected ? "Canlı" : "Son başarılı ölçüm"}`;
+        elements.interfaceDataStatus.innerHTML = `<i></i> ${data.connected ? "Live" : "Last successful poll"}`;
         elements.interfaceDataStatus.classList.toggle("is-disconnected", !data.connected);
-        elements.lastUpdated.textContent = data.lastUpdated ? formatTime(data.lastUpdated) : "Henüz başarılı sorgu yok";
+        elements.lastUpdated.textContent = data.lastUpdated ? formatTime(data.lastUpdated) : "No successful poll yet";
         elements.connectionMessage.textContent = data.errorMessage || "";
         updateHistoryInterfaceOptions(sortedInterfaces);
         if (addToHistory) appendHistory(data);
@@ -1247,9 +1247,9 @@
         }
         catch (error) {
             if (error.name === "AbortError" || deviceId !== selectedDeviceId) return;
-            console.error("İzleme verileri alınamadı.", error);
-            elements.connectionMessage.textContent = getUserFacingError(error, "Monitoring verisi alınamadı.");
-            elements.deviceStatus.innerHTML = "<i></i> Bağlantı Kesildi";
+            console.error("Monitoring data could not be retrieved.", error);
+            elements.connectionMessage.textContent = getUserFacingError(error, "Monitoring data is unavailable.");
+            elements.deviceStatus.innerHTML = "<i></i> Disconnected";
             elements.deviceStatus.classList.add("is-disconnected");
         } finally {
             if (requestVersion === monitoringRequestVersion) {
@@ -1267,7 +1267,7 @@
 
     async function getHistoryData(url) {
         const response = await fetch(url, { headers: { "Accept": "application/json" }, cache: "no-store" });
-        if (!response.ok) throw new Error(`Geçmiş API isteği başarısız oldu: ${response.status}`);
+        if (!response.ok) throw new Error(`History API request failed: ${response.status}`);
         return response.json();
     }
 
@@ -1321,7 +1321,7 @@
             drawAllCharts();
         } catch (error) {
             if (deviceId !== selectedDeviceId || requestVersion !== historyRequestVersion) return;
-            console.error("Geçmiş ölçümler alınamadı.", error);
+            console.error("Historical metrics could not be retrieved.", error);
             if (range !== "live") { chartHistory.system = []; chartHistory.network = []; }
             updateChartEmptyStates();
             drawAllCharts();
@@ -1362,7 +1362,7 @@
         await loadTopInterfaces();
         try { await buildInitialHistory(); }
         catch (error) {
-            console.error("Başlangıç geçmişi oluşturulamadı.", error);
+            console.error("Initial history could not be initialized.", error);
             await refreshDashboard();
         }
         window.addEventListener("resize", debounce(drawAllCharts, 120));

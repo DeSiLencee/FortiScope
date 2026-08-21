@@ -7,16 +7,16 @@ public static class DeviceValidator
 {
     public static string? Validate(DeviceRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Name)) return "Device name zorunludur.";
-        if (string.IsNullOrWhiteSpace(request.IpAddress)) return "IP address zorunludur.";
-        if (!IPAddress.TryParse(request.IpAddress.Trim(), out _)) return "Geçerli bir IP address girilmelidir.";
+        if (string.IsNullOrWhiteSpace(request.Name)) return "Device name is required.";
+        if (string.IsNullOrWhiteSpace(request.IpAddress)) return "IP address is required.";
+        if (!IPAddress.TryParse(request.IpAddress.Trim(), out _)) return "Invalid IP address.";
         if (!string.Equals(request.SnmpVersion, "v3", StringComparison.OrdinalIgnoreCase))
-            return "Şimdilik yalnızca SNMPv3 destekleniyor.";
-        if (string.IsNullOrWhiteSpace(request.SnmpUsername)) return "SNMPv3 username zorunludur.";
+            return "Only SNMPv3 is currently supported.";
+        if (string.IsNullOrWhiteSpace(request.SnmpUsername)) return "SNMPv3 username is required.";
         if (!string.Equals(request.AuthProtocol, "SHA1", StringComparison.OrdinalIgnoreCase))
-            return "Şimdilik yalnızca SHA1 authentication protocol destekleniyor.";
+            return "Only the SHA1 authentication protocol is currently supported.";
         if (!string.Equals(request.PrivacyProtocol, "AES128", StringComparison.OrdinalIgnoreCase))
-            return "Şimdilik yalnızca AES128 privacy protocol destekleniyor.";
+            return "Only the AES128 privacy protocol is currently supported.";
         return null;
     }
 }

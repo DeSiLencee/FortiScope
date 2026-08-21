@@ -84,7 +84,7 @@ public sealed class MetricPersistenceBackgroundService(
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
         catch (Exception exception)
         {
-            logger.LogError("Ölçüm veritabanı işlemi başarısız oldu ({ExceptionType}).", exception.GetType().Name);
+            logger.LogError("Metric database operation failed ({ExceptionType}).", exception.GetType().Name);
         }
     }
 }

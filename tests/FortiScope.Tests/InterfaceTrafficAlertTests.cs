@@ -53,14 +53,14 @@ public sealed class InterfaceTrafficAlertTests
     }
 
     [Theory]
-    [InlineData("Sanal", 1, false, 80d, 1000L, true, true, true)]
-    [InlineData("Fiziksel", 2, false, 80d, 1000L, true, true, true)]
-    [InlineData("Fiziksel", 1, false, 80d, 1000L, false, true, true)]
-    [InlineData("Fiziksel", 1, false, 80d, 1000L, true, false, true)]
-    [InlineData("Fiziksel", 1, false, 80d, 1000L, true, true, false)]
-    [InlineData("Fiziksel", 1, true, 80d, 1000L, true, true, true)]
-    [InlineData("Fiziksel", 1, false, null, 1000L, true, true, true)]
-    [InlineData("Fiziksel", 1, false, 80d, null, true, true, true)]
+    [InlineData("Virtual", 1, false, 80d, 1000L, true, true, true)]
+    [InlineData("Physical", 2, false, 80d, 1000L, true, true, true)]
+    [InlineData("Physical", 1, false, 80d, 1000L, false, true, true)]
+    [InlineData("Physical", 1, false, 80d, 1000L, true, false, true)]
+    [InlineData("Physical", 1, false, 80d, 1000L, true, true, false)]
+    [InlineData("Physical", 1, true, 80d, 1000L, true, true, true)]
+    [InlineData("Physical", 1, false, null, 1000L, true, true, true)]
+    [InlineData("Physical", 1, false, 80d, null, true, true, true)]
     public void IneligibleInterfaces_AreIgnored(string type, int operStatus, bool measuring,
         double? utilization, long? speed, bool deviceEnabled, bool online, bool alertsEnabled)
     {
@@ -70,12 +70,12 @@ public sealed class InterfaceTrafficAlertTests
 
     [Fact]
     public void FullyMeasuredPhysicalUpInterface_IsEligible() =>
-        Assert.True(InterfaceTrafficAlertPolicy.IsEligible(Interface("Fiziksel", 1, false, 75, 1000),
+        Assert.True(InterfaceTrafficAlertPolicy.IsEligible(Interface("Physical", 1, false, 75, 1000),
             true, true, true));
 
     private static string StateKey(int index) => $"INTERFACE_TRAFFIC:{index}";
 
     private static NetworkInterfaceSnapshot Interface(string type, int operStatus, bool measuring,
         double? utilization, long? speed) => new(1, "port1", type, null, 1, operStatus,
-        operStatus == 1 ? "Aktif" : "Kapalı", speed, 10, 5, 15, utilization, measuring, null);
+        operStatus == 1 ? "Up" : "Down", speed, 10, 5, 15, utilization, measuring, null);
 }

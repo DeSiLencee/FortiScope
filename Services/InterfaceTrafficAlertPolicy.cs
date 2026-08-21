@@ -6,7 +6,7 @@ public static class InterfaceTrafficAlertPolicy
 {
     public static bool IsEligible(NetworkInterfaceSnapshot item, bool deviceEnabled, bool deviceOnline,
         bool alertsEnabled) => deviceEnabled && deviceOnline && alertsEnabled &&
-        item.Type == "Fiziksel" && item.OperStatus == 1 && item.SpeedMbps is > 0 &&
+        item.Type == "Physical" && item.OperStatus == 1 && item.SpeedMbps is > 0 &&
         !item.IsMeasuring && item.UtilizationPercent.HasValue;
 
     public static string GetSeverity(double utilizationPercent, int warning, int critical) =>

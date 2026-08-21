@@ -12,7 +12,7 @@ public sealed class SnmpMonitoringBackgroundService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        logger.LogInformation("FortiGate SNMP izleme servisi başlatıldı.");
+        logger.LogInformation("FortiGate SNMP monitoring service started.");
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -39,7 +39,7 @@ public sealed class SnmpMonitoringBackgroundService(
             }
             catch (Exception exception)
             {
-                logger.LogError("FortiGate cihaz listesi okunamadı ({ExceptionType}).", exception.GetType().Name);
+                logger.LogError("FortiGate device list could not be read ({ExceptionType}).", exception.GetType().Name);
             }
 
             try

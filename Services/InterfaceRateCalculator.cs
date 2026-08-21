@@ -20,7 +20,7 @@ public static class InterfaceRateCalculator
         if (!previousInOctets.HasValue || !previousOutOctets.HasValue || elapsed <= TimeSpan.Zero)
             return new InterfaceRateResult(0, 0, 0, null, true);
 
-        // Daha küçük sayaç cihaz yeniden başlatması veya sayaç resetidir; negatif rate üretilmez.
+        // A lower counter indicates a device restart or counter reset; never produce a negative rate.
         if (currentInOctets < previousInOctets.Value || currentOutOctets < previousOutOctets.Value)
             return new InterfaceRateResult(0, 0, 0, null, true);
 

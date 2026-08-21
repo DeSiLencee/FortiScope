@@ -1,22 +1,22 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = "Ağ İzleme Paneli";
+    ViewData["Title"] = "Network Monitoring Dashboard";
 }
 
 <div class="dashboard" aria-live="polite">
     <section class="dashboard-heading">
         <div>
-            <p class="eyebrow">GENEL BAKIŞ</p>
-            <h1>Ağ İzleme Paneli</h1>
-            <p class="heading-copy">FortiGate cihazınızın performansını ve port trafiğini anlık izleyin.</p>
+            <p class="eyebrow">OVERVIEW</p>
+            <h1>Network Monitoring Dashboard</h1>
+            <p class="heading-copy">Monitor your FortiGate device performance and interface traffic in real time.</p>
         </div>
         <div class="dashboard-heading-actions">
             <button type="button" class="add-fortigate-button" id="openAddDeviceModal"><span class="add-fortigate-icon" aria-hidden="true">+</span><span>Add FortiGate</span></button>
             <div class="device-card">
                 <span class="device-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7.5h16v9H4zM8 11h2m2 0h2m2 0h1M7 16.5v2m10-2v2"/></svg></span>
                 <div><span class="device-name" id="deviceName">FortiGate-ARM64-KVM</span><span class="device-ip" id="deviceIp">192.168.64.2</span></div>
-                <span class="connection-status is-disconnected" id="deviceStatus"><i></i> Bağlantı bekleniyor</span>
+                <span class="connection-status is-disconnected" id="deviceStatus"><i></i> Waiting for connection</span>
             </div>
         </div>
     </section>
@@ -34,7 +34,7 @@
 
     <section class="panel top-interfaces-panel" aria-labelledby="topInterfacesTitle">
         <div class="panel-heading"><div><p class="eyebrow">FLEET TRAFFIC</p><h2 id="topInterfacesTitle">Top Interfaces</h2></div><span class="live-badge"><i></i> Live</span></div>
-        <div class="top-interfaces-list" id="topInterfacesList"><p class="fleet-alerts-empty">Interface verileri bekleniyor…</p></div>
+        <div class="top-interfaces-list" id="topInterfacesList"><p class="fleet-alerts-empty">Waiting for interface data…</p></div>
     </section>
 
     <section class="panel fleet-alerts-panel" aria-labelledby="fleetAlertsTitle">
@@ -42,7 +42,7 @@
             <div><p class="eyebrow">NETWORK OPERATIONS</p><h2 id="fleetAlertsTitle">Active Alerts</h2></div>
             <div class="fleet-alert-heading-actions"><button type="button" class="alert-settings-button" id="openAlertSettings"><span aria-hidden="true">⚙</span> Alert Settings</button><button type="button" class="alert-settings-button" id="openEmailSettings"><span aria-hidden="true">✉</span> Email Notifications</button><span class="alert-count" id="fleetAlertCount">0</span></div>
         </div>
-        <div class="fleet-alerts-list" id="fleetAlertsList"><p class="fleet-alerts-empty">Monitoring verileri bekleniyor…</p></div>
+        <div class="fleet-alerts-list" id="fleetAlertsList"><p class="fleet-alerts-empty">Waiting for monitoring data…</p></div>
     </section>
 
     <section class="panel alert-history-panel" aria-labelledby="alertHistoryTitle">
@@ -57,99 +57,99 @@
         </div>
         <div class="table-wrap alert-history-table-wrap"><table class="alert-history-table">
             <thead><tr><th>Time</th><th>Device</th><th>Event</th><th>Alert</th><th>Severity</th><th>Value</th><th>Message</th></tr></thead>
-            <tbody id="alertHistoryBody"><tr><td colspan="7" class="loading-cell">Alert history yükleniyor…</td></tr></tbody>
+            <tbody id="alertHistoryBody"><tr><td colspan="7" class="loading-cell">Loading alert history…</td></tr></tbody>
         </table></div>
     </section>
 
     <section class="panel devices-panel" aria-labelledby="registeredDevicesTitle">
         <div class="panel-heading">
-            <div><p class="eyebrow">ENVANTER</p><h2 id="registeredDevicesTitle">Kayıtlı FortiGate Cihazları</h2></div>
+            <div><p class="eyebrow">INVENTORY</p><h2 id="registeredDevicesTitle">Registered FortiGate Devices</h2></div>
             <span class="device-count" id="deviceCount">0</span>
         </div>
         <div class="device-management-status" id="deviceManagementStatus" role="status" aria-live="polite"></div>
-        <div class="device-list" id="deviceList"><p class="device-list-message">Cihazlar yükleniyor…</p></div>
+        <div class="device-list" id="deviceList"><p class="device-list-message">Loading devices…</p></div>
     </section>
 
-    <section class="metric-grid" aria-label="Cihaz ölçümleri">
+    <section class="metric-grid" aria-label="Device metrics">
         <article class="metric-card" id="cpuCard">
-            <div class="metric-top"><span class="metric-label">CPU Kullanımı</span><span class="metric-icon cpu-icon">CPU</span></div>
+            <div class="metric-top"><span class="metric-label">CPU Usage</span><span class="metric-icon cpu-icon">CPU</span></div>
             <div class="metric-reading"><strong id="cpuValue">--</strong><span>%</span></div>
-            <div class="progress-track"><span id="cpuBar"></span></div><p id="cpuHint">Veri bekleniyor</p>
+            <div class="progress-track"><span id="cpuBar"></span></div><p id="cpuHint">Waiting for data</p>
         </article>
         <article class="metric-card" id="ramCard">
-            <div class="metric-top"><span class="metric-label">RAM Kullanımı</span><span class="metric-icon ram-icon">RAM</span></div>
+            <div class="metric-top"><span class="metric-label">Memory Usage</span><span class="metric-icon ram-icon">RAM</span></div>
             <div class="metric-reading"><strong id="ramValue">--</strong><span>%</span></div>
-            <div class="progress-track"><span id="ramBar"></span></div><p id="ramHint">Veri bekleniyor</p>
+            <div class="progress-track"><span id="ramBar"></span></div><p id="ramHint">Waiting for data</p>
         </article>
         <article class="metric-card">
-            <div class="metric-top"><span class="metric-label">Aktif Session</span><span class="metric-icon session-icon">↔</span></div>
-            <div class="metric-reading"><strong id="sessionValue">--</strong></div><p>Aktif bağlantı sayısı</p>
+            <div class="metric-top"><span class="metric-label">Active Sessions</span><span class="metric-icon session-icon">↔</span></div>
+            <div class="metric-reading"><strong id="sessionValue">--</strong></div><p>Number of active sessions</p>
         </article>
         <article class="metric-card busiest-card">
-            <div class="metric-top"><span class="metric-label">En Yoğun Port</span><span class="metric-icon port-icon">⇅</span></div>
-            <div class="metric-reading port-reading"><strong id="busiestPort">--</strong></div><p><span id="busiestTraffic">--</span> toplam trafik</p>
+            <div class="metric-top"><span class="metric-label">Busiest Interface</span><span class="metric-icon port-icon">⇅</span></div>
+            <div class="metric-reading port-reading"><strong id="busiestPort">--</strong></div><p><span id="busiestTraffic">--</span> total traffic</p>
         </article>
     </section>
 
     <div class="history-toolbar">
-        <div class="range-selector" role="group" aria-label="Grafik zaman aralığı">
-            <button type="button" class="is-active" data-history-range="live">Canlı</button>
-            <button type="button" data-history-range="1h">Son 1 saat</button>
-            <button type="button" data-history-range="6h">Son 6 saat</button>
-            <button type="button" data-history-range="24h">Son 24 saat</button>
+        <div class="range-selector" role="group" aria-label="Chart time range">
+            <button type="button" class="is-active" data-history-range="live">Live</button>
+            <button type="button" data-history-range="1h">Last 1 hour</button>
+            <button type="button" data-history-range="6h">Last 6 hours</button>
+            <button type="button" data-history-range="24h">Last 24 hours</button>
         </div>
         <label class="history-interface-select">Interface
-            <select id="historyInterfaceSelect"><option value="">Interface seçin</option></select>
+            <select id="historyInterfaceSelect"><option value="">Select an interface</option></select>
         </label>
     </div>
 
-    <section class="charts-grid" aria-label="Performans grafikleri">
+    <section class="charts-grid" aria-label="Performance charts">
         <article class="chart-panel">
             <div class="chart-heading">
-                <div><p class="chart-kicker">PERFORMANS</p><h2>Canlı Sistem Performansı</h2></div>
+                <div><p class="chart-kicker">PERFORMANCE</p><h2>Live System Performance</h2></div>
                 <div class="chart-values"><span class="cpu-series">CPU <strong id="chartCpuValue">--%</strong></span><span class="ram-series">RAM <strong id="chartRamValue">--%</strong></span></div>
             </div>
-            <div class="chart-canvas-wrap"><canvas id="systemChart" role="img" aria-label="CPU ve RAM kullanım zaman serisi grafiği"></canvas><p class="chart-empty" id="systemChartEmpty">Bu zaman aralığı için yeterli geçmiş veri yok</p></div>
-            <div class="chart-footer"><span class="chart-live"><i></i> Canlı izleme</span><time id="systemChartTime">--:--:--</time></div>
+            <div class="chart-canvas-wrap"><canvas id="systemChart" role="img" aria-label="CPU and memory usage time-series chart"></canvas><p class="chart-empty" id="systemChartEmpty">Not enough historical data for this time range</p></div>
+            <div class="chart-footer"><span class="chart-live"><i></i> Live monitoring</span><time id="systemChartTime">--:--:--</time></div>
         </article>
         <article class="chart-panel">
             <div class="chart-heading">
-                <div><p class="chart-kicker">AĞ · SNMP</p><h2>Canlı Ağ Trafiği</h2></div>
-                <div class="chart-values"><span class="incoming-series">Gelen <strong id="chartIncomingValue">--</strong></span><span class="outgoing-series">Giden <strong id="chartOutgoingValue">--</strong></span></div>
+                <div><p class="chart-kicker">NETWORK · SNMP</p><h2>Live Network Traffic</h2></div>
+                <div class="chart-values"><span class="incoming-series">Incoming <strong id="chartIncomingValue">--</strong></span><span class="outgoing-series">Outgoing <strong id="chartOutgoingValue">--</strong></span></div>
             </div>
-            <div class="chart-canvas-wrap"><canvas id="networkChart" role="img" aria-label="Gelen ve giden ağ trafiği zaman serisi grafiği"></canvas><p class="chart-empty" id="networkChartEmpty">Bu zaman aralığı için yeterli geçmiş veri yok</p></div>
+            <div class="chart-canvas-wrap"><canvas id="networkChart" role="img" aria-label="Incoming and outgoing network traffic time-series chart"></canvas><p class="chart-empty" id="networkChartEmpty">Not enough historical data for this time range</p></div>
             <div class="chart-footer"><span class="chart-live"><i></i> <span id="networkChartUnit">Kbps</span></span><time id="networkChartTime">--:--:--</time></div>
         </article>
     </section>
 
     <div class="content-grid">
         <section class="panel traffic-panel">
-            <div class="panel-heading"><div><p class="eyebrow">CANLI SNMP VERİSİ</p><h2>Interface Trafiği</h2></div><span class="live-badge" id="interfaceDataStatus"><i></i> Bekleniyor</span></div>
-            <div class="interface-filters" role="group" aria-label="Interface filtresi">
-                <button type="button" data-interface-filter="all">Tümü</button>
-                <button type="button" class="is-active" data-interface-filter="physical">Fiziksel</button>
-                <button type="button" data-interface-filter="virtual">Sanal</button>
-                <button type="button" data-interface-filter="up">Aktif</button>
-                <button type="button" data-interface-filter="down">Kapalı</button>
+            <div class="panel-heading"><div><p class="eyebrow">LIVE SNMP DATA</p><h2>Interface Traffic</h2></div><span class="live-badge" id="interfaceDataStatus"><i></i> Waiting</span></div>
+            <div class="interface-filters" role="group" aria-label="Interface filter">
+                <button type="button" data-interface-filter="all">All</button>
+                <button type="button" class="is-active" data-interface-filter="physical">Physical</button>
+                <button type="button" data-interface-filter="virtual">Virtual</button>
+                <button type="button" data-interface-filter="up">Up</button>
+                <button type="button" data-interface-filter="down">Down</button>
             </div>
             <div class="table-wrap"><table>
-                <thead><tr><th>Index</th><th>Interface</th><th>Tür</th><th>Alias</th><th>Admin</th><th>Link</th><th>Hız</th><th>Gelen</th><th>Giden</th><th>Toplam / Kullanım</th></tr></thead>
-                <tbody id="portTableBody"><tr><td colspan="10" class="loading-cell">SNMP interface verileri yükleniyor…</td></tr></tbody>
+                <thead><tr><th>Index</th><th>Interface</th><th>Type</th><th>Alias</th><th>Admin</th><th>Link</th><th>Speed</th><th>Incoming</th><th>Outgoing</th><th>Total / Utilization</th></tr></thead>
+                <tbody id="portTableBody"><tr><td colspan="10" class="loading-cell">Loading SNMP interface data…</td></tr></tbody>
             </table></div>
         </section>
         <aside class="panel alerts-panel">
-            <div class="panel-heading"><div><p class="eyebrow">SİSTEM DURUMU</p><h2>Aktif Uyarılar</h2></div><span class="alert-count" id="alertCount">0</span></div>
-            <div class="alerts-list" id="alertsList"><p class="empty-alerts">Veriler kontrol ediliyor…</p></div>
+            <div class="panel-heading"><div><p class="eyebrow">SYSTEM STATUS</p><h2>Active Alerts</h2></div><span class="alert-count" id="alertCount">0</span></div>
+            <div class="alerts-list" id="alertsList"><p class="empty-alerts">Checking data…</p></div>
         </aside>
     </div>
-    <p class="last-update">Son güncelleme: <time id="lastUpdated">--:--:--</time><span id="connectionMessage"></span></p>
+    <p class="last-update">Last updated: <time id="lastUpdated">--:--:--</time><span id="connectionMessage"></span></p>
 </div>
 
 <div class="modal-backdrop fortiscope-modal-overlay" id="addDeviceModal" hidden>
     <section class="device-modal fortiscope-modal" role="dialog" aria-modal="true" aria-labelledby="addDeviceTitle">
         <div class="device-modal-heading fortiscope-modal-header">
-            <div><p class="eyebrow">YENİ CİHAZ</p><h2 id="addDeviceTitle">Add FortiGate</h2></div>
-            <button type="button" class="modal-close fortiscope-modal-close" id="closeAddDeviceModal" aria-label="Pencereyi kapat">×</button>
+            <div><p class="eyebrow">NEW DEVICE</p><h2 id="addDeviceTitle">Add FortiGate</h2></div>
+            <button type="button" class="modal-close fortiscope-modal-close" id="closeAddDeviceModal" aria-label="Close dialog">×</button>
         </div>
         <form class="fortiscope-device-form" id="addDeviceForm">
             <div class="device-form-grid fortiscope-device-form-grid">
@@ -174,7 +174,7 @@
     <section class="device-modal fortiscope-modal" role="dialog" aria-modal="true" aria-labelledby="editDeviceTitle">
         <div class="fortiscope-modal-header">
             <div><p class="eyebrow">EDIT DEVICE</p><h2 id="editDeviceTitle">Edit FortiGate</h2></div>
-            <button type="button" class="fortiscope-modal-close" id="closeEditDeviceModal" aria-label="Edit device penceresini kapat">×</button>
+            <button type="button" class="fortiscope-modal-close" id="closeEditDeviceModal" aria-label="Close edit device dialog">×</button>
         </div>
         <form class="fortiscope-device-form" id="editDeviceForm">
             <div class="fortiscope-device-form-grid">
@@ -199,7 +199,7 @@
     <section class="fortiscope-modal delete-device-modal" role="alertdialog" aria-modal="true" aria-labelledby="deleteDeviceTitle">
         <div class="fortiscope-modal-header">
             <div><p class="eyebrow is-danger">DELETE DEVICE</p><h2 id="deleteDeviceTitle">Delete FortiGate?</h2></div>
-            <button type="button" class="fortiscope-modal-close" id="closeDeleteDeviceModal" aria-label="Delete confirmation penceresini kapat">×</button>
+            <button type="button" class="fortiscope-modal-close" id="closeDeleteDeviceModal" aria-label="Close delete confirmation dialog">×</button>
         </div>
         <div class="delete-device-content">
             <p>Device:</p><strong id="deleteDeviceName">--</strong><span id="deleteDeviceIp">--</span>
@@ -217,7 +217,7 @@
     <section class="fortiscope-modal alert-settings-modal" role="dialog" aria-modal="true" aria-labelledby="alertSettingsTitle">
         <div class="fortiscope-modal-header">
             <div><p class="eyebrow">ALERT MANAGEMENT</p><h2 id="alertSettingsTitle">Alert Settings</h2></div>
-            <button type="button" class="fortiscope-modal-close" id="closeAlertSettings" aria-label="Alert Settings penceresini kapat">×</button>
+            <button type="button" class="fortiscope-modal-close" id="closeAlertSettings" aria-label="Close alert settings dialog">×</button>
         </div>
         <form class="fortiscope-device-form alert-settings-form" id="alertSettingsForm">
             <div class="alert-settings-grid">
@@ -251,7 +251,7 @@
     <section class="fortiscope-modal email-settings-modal" role="dialog" aria-modal="true" aria-labelledby="emailSettingsTitle">
         <div class="fortiscope-modal-header">
             <div><p class="eyebrow">NOTIFICATIONS</p><h2 id="emailSettingsTitle">Email Notifications</h2></div>
-            <button type="button" class="fortiscope-modal-close" id="closeEmailSettings" aria-label="Email Notifications penceresini kapat">×</button>
+            <button type="button" class="fortiscope-modal-close" id="closeEmailSettings" aria-label="Close email notifications dialog">×</button>
         </div>
         <form class="fortiscope-device-form email-settings-form" id="emailSettingsForm">
             <label class="fortiscope-enabled-field email-master-toggle"><input name="enabled" type="checkbox" /><span><strong>Enable Email Notifications</strong><small id="emailSettingsState">Disabled</small></span></label>

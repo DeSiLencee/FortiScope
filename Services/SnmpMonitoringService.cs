@@ -36,7 +36,7 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
     {
         _options = options.Value;
         _logger = logger;
-        _current = DisconnectedSnapshot(GetConfigurationError() ?? "İlk SNMP sorgusu bekleniyor.");
+        _current = DisconnectedSnapshot(GetConfigurationError() ?? "Waiting for the first SNMP poll.");
     }
 
     public MonitoringSnapshot GetCurrent() => Volatile.Read(ref _current);
@@ -57,7 +57,7 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
         var defaultDeviceId = deviceIds.Count == 0 ? 0 : deviceIds.Min();
         Volatile.Write(ref _defaultDeviceId, defaultDeviceId);
         if (defaultDeviceId == 0)
-            Volatile.Write(ref _current, DisconnectedSnapshot("Etkin FortiGate cihazı bulunamadı."));
+            Volatile.Write(ref _current, DisconnectedSnapshot("No enabled FortiGate device was found."));
         else if (_currentByDevice.TryGetValue(defaultDeviceId, out var snapshot))
             Volatile.Write(ref _current, snapshot);
     }
@@ -77,7 +77,7 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
         if (configurationError is not null)
         {
             Volatile.Write(ref _current, DisconnectedSnapshot(configurationError));
-            _logger.LogWarning("SNMP sorgusu yapılandırma eksik olduğu için atlandı: {Reason}", configurationError);
+            _logger.LogWarning("SNMP poll skipped because the configuration is incomplete: {Reason}", configurationError);
             return;
         }
 
@@ -94,7 +94,7 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
         {
             var previous = GetCurrent();
             Volatile.Write(ref _current, previous with { Connected = false, ErrorMessage = GetSafeErrorMessage(exception) });
-            _logger.LogWarning("SNMP sorgusu başarısız oldu ({ExceptionType}).", exception.GetType().Name);
+            _logger.LogWarning("SNMP poll failed ({ExceptionType}).", exception.GetType().Name);
         }
     }
 
@@ -103,14 +103,14 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
     {
         var configurationError = GetSharedConfigurationError();
         if (configurationError is null && !IPAddress.TryParse(host, out _))
-            configurationError = "Cihaz IP adresi geçerli değil.";
+            configurationError = "The device IP address is invalid.";
         if (configurationError is null && string.IsNullOrWhiteSpace(username))
-            configurationError = "SNMPv3 kullanıcı adı eksik.";
+            configurationError = "SNMPv3 username is required.";
 
         if (configurationError is not null)
         {
             SetDeviceSnapshot(deviceId, DisconnectedSnapshot(deviceName, host, configurationError));
-            _logger.LogWarning("FortiGate polling atlandı: {DeviceName} ({Host}) - {Reason}",
+            _logger.LogWarning("FortiGate polling skipped: {DeviceName} ({Host}) - {Reason}",
                 deviceName, host, configurationError);
             return;
         }
@@ -119,7 +119,7 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
         {
             var snapshot = await Task.Run(() => QueryDevice(deviceId, host, username), cancellationToken);
             SetDeviceSnapshot(deviceId, snapshot);
-            _logger.LogInformation("FortiGate polling başarılı: {DeviceName} ({Host})", deviceName, host);
+            _logger.LogInformation("FortiGate polling succeeded: {DeviceName} ({Host})", deviceName, host);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -136,7 +136,7 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
                 Connected = false,
                 ErrorMessage = error
             });
-            _logger.LogWarning("FortiGate polling başarısız: {DeviceName} ({Host}) ({ExceptionType})",
+            _logger.LogWarning("FortiGate polling failed: {DeviceName} ({Host}) ({ExceptionType})",
                 deviceName, host, exception.GetType().Name);
         }
     }
@@ -167,7 +167,7 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
                 false,
                 host,
                 null,
-                "Geçerli bir IP adresi değil.");
+                "Invalid IP address.");
         }
 
         if (string.IsNullOrWhiteSpace(username))
@@ -176,7 +176,7 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
                 false,
                 host,
                 null,
-                "SNMPv3 kullanıcı adı eksik.");
+                "SNMPv3 username is required.");
         }
 
         if (string.IsNullOrWhiteSpace(_options.AuthPassword) ||
@@ -186,7 +186,7 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
                 false,
                 host,
                 null,
-                "SNMPv3 Auth/Privacy password yapılandırılmamış.");
+                "SNMPv3 authentication/privacy password is not configured.");
         }
 
         try
@@ -241,7 +241,7 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
                         response.Pdu().Variables[0].Id != Messenger.NotInTimeWindow)
                     {
                         throw new SnmpException(
-                            "FortiGate SNMPv3 güvenlik raporu döndürdü.");
+                            "FortiGate returned an SNMPv3 security report.");
                     }
 
                     request = new GetRequestMessage(
@@ -263,7 +263,7 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
                 if (response.Pdu().ErrorStatus.ToInt32() != 0)
                 {
                     throw ErrorException.Create(
-                        "SNMP yanıt hatası",
+                        "SNMP response error",
                         endpoint.Address,
                         response);
                 }
@@ -286,7 +286,7 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
         catch (Exception exception)
         {
             _logger.LogWarning(
-                "SNMP bağlantı testi başarısız oldu: {Host} ({ExceptionType})",
+                "SNMP connection test failed: {Host} ({ExceptionType})",
                 host,
                 exception.GetType().Name);
 
@@ -301,7 +301,7 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
     private MonitoringSnapshot QueryDevice(int deviceId, string host, string username)
     {
         var endpoint = new IPEndPoint(IPAddress.Parse(host), _options.Port);
-#pragma warning disable CS0618 // FortiGate kullanıcısı SHA1 ile yapılandırılmıştır.
+#pragma warning disable CS0618 // The FortiGate user is configured with SHA1.
         var authentication = new SHA1AuthenticationProvider(new OctetString(_options.AuthPassword!));
 #pragma warning restore CS0618
         var privacy = new AESPrivacyProvider(new OctetString(_options.PrivacyPassword!), authentication);
@@ -316,17 +316,17 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
         var response = SendSystemRequest(endpoint, variables, privacy, report, username);
         var values = response.Pdu().Variables;
         if (values.Count != variables.Count)
-            throw new SnmpException("FortiGate eksik sistem SNMP değişkeni döndürdü.");
+            throw new SnmpException("FortiGate returned an incomplete system SNMP variable set.");
 
         var interfaceResult = QueryInterfaces(deviceId, endpoint, privacy, report, username);
         if (interfaceResult.Interfaces.Count == 0)
-            throw new SnmpException("FortiGate IF-MIB interface tablosu alınamadı.");
+            throw new SnmpException("The FortiGate IF-MIB interface table could not be retrieved.");
 
         return new MonitoringSnapshot(
             CleanDeviceName(values[3].Data.ToString()), host, true,
             ParseInt(values[0]), ParseInt(values[1]), ParseInt(values[2]),
             interfaceResult.Interfaces, interfaceResult.CollectedAt,
-            interfaceResult.HasPartialErrors ? "Bazı interface alanları SNMP üzerinden alınamadı." : null);
+            interfaceResult.HasPartialErrors ? "Some interface fields could not be retrieved through SNMP." : null);
     }
 
     private ISnmpMessage SendSystemRequest(IPEndPoint endpoint, IList<Variable> variables,
@@ -337,12 +337,12 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
         if (response is ReportMessage)
         {
             if (response.Pdu().Variables.Count == 0 || response.Pdu().Variables[0].Id != Messenger.NotInTimeWindow)
-                throw new SnmpException("FortiGate SNMPv3 güvenlik raporu döndürdü.");
+                throw new SnmpException("FortiGate returned an SNMPv3 security report.");
             request = CreateRequest(variables, privacy, response, username);
             response = request.GetResponse(_options.TimeoutMilliseconds, endpoint);
         }
         if (response.Pdu().ErrorStatus.ToInt32() != 0)
-            throw ErrorException.Create("SNMP yanıt hatası", endpoint.Address, response);
+            throw ErrorException.Create("SNMP response error", endpoint.Address, response);
         return response;
     }
 
@@ -359,7 +359,7 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
             {
                 columns[oid] = new Dictionary<int, Variable>();
                 failedColumns.Add(oid);
-                _logger.LogWarning("IF-MIB sütunu alınamadı: {Oid} ({ExceptionType}).", oid, exception.GetType().Name);
+                _logger.LogWarning("IF-MIB column could not be retrieved: {Oid} ({ExceptionType}).", oid, exception.GetType().Name);
             }
         }
 
@@ -402,9 +402,9 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
         var inOctets = ReadCounter64(columns, IfHcInOctetsOid, index);
         var outOctets = ReadCounter64(columns, IfHcOutOctetsOid, index);
 
-        if (string.IsNullOrWhiteSpace(name)) errors.Add("Interface adı alınamadı");
-        if (!inOctets.HasValue || !outOctets.HasValue) errors.Add("64-bit trafik sayacı alınamadı");
-        if (failedColumns.Count > 0) errors.Add("Eksik IF-MIB alanı var");
+        if (string.IsNullOrWhiteSpace(name)) errors.Add("Interface name could not be retrieved");
+        if (!inOctets.HasValue || !outOctets.HasValue) errors.Add("64-bit traffic counter could not be retrieved");
+        if (failedColumns.Count > 0) errors.Add("One or more IF-MIB fields are missing");
 
         InterfaceRateResult rate;
         if (inOctets.HasValue && outOctets.HasValue)
@@ -438,21 +438,21 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
     {
         var sharedError = GetSharedConfigurationError();
         if (sharedError is not null) return sharedError;
-        if (string.IsNullOrWhiteSpace(_options.Username)) return "SNMPv3 kullanıcı adı eksik.";
-        if (!IPAddress.TryParse(_options.Host, out _)) return "SNMP host ayarı geçerli bir IP adresi değil.";
+        if (string.IsNullOrWhiteSpace(_options.Username)) return "SNMPv3 username is required.";
+        if (!IPAddress.TryParse(_options.Host, out _)) return "The configured SNMP host is not a valid IP address.";
         return null;
     }
 
     private string? GetSharedConfigurationError()
     {
         if (string.IsNullOrWhiteSpace(_options.AuthPassword) || string.IsNullOrWhiteSpace(_options.PrivacyPassword))
-            return "SNMPv3 kimlik bilgileri eksik. User Secrets içinde Snmp:AuthPassword ve Snmp:PrivacyPassword ayarlanmalıdır.";
-        if (_options.Port is < 1 or > 65535) return "SNMP port ayarı geçersiz.";
+            return "SNMPv3 credentials are incomplete. Configure Snmp:AuthPassword and Snmp:PrivacyPassword in User Secrets.";
+        if (_options.Port is < 1 or > 65535) return "The configured SNMP port is invalid.";
         if (!string.Equals(_options.Version, "v3", StringComparison.OrdinalIgnoreCase) ||
             !string.Equals(_options.SecurityLevel, "authPriv", StringComparison.OrdinalIgnoreCase) ||
             !string.Equals(_options.AuthenticationProtocol, "SHA1", StringComparison.OrdinalIgnoreCase) ||
             !string.Equals(_options.PrivacyProtocol, "AES128", StringComparison.OrdinalIgnoreCase))
-            return "SNMP protokol ayarları v3/authPriv/SHA1/AES128 olmalıdır.";
+            return "SNMP protocol settings must be v3/authPriv/SHA1/AES128.";
         return null;
     }
 
@@ -465,7 +465,7 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
     private static int ParseInt(Variable variable)
     {
         if (!int.TryParse(variable.Data.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
-            throw new SnmpException($"{variable.Id} için sayısal olmayan SNMP değeri alındı.");
+            throw new SnmpException($"A non-numeric SNMP value was received for {variable.Id}.");
         return value;
     }
 
@@ -491,14 +491,14 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
         string oid, int index) => columns[oid].TryGetValue(index, out var value) && value.Data is Counter64 counter
             ? counter.ToUInt64() : null;
 
-    private static string GetLinkStatus(int? status) => status switch { 1 => "Aktif", 2 => "Kapalı", _ => "Bilinmiyor" };
+    private static string GetLinkStatus(int? status) => status switch { 1 => "Up", 2 => "Down", _ => "Unknown" };
 
     private static string GetInterfaceType(string name)
     {
         if (name.StartsWith("port", StringComparison.OrdinalIgnoreCase) ||
-            name.Equals("fortilink", StringComparison.OrdinalIgnoreCase)) return "Fiziksel";
-        if (name.EndsWith(".root", StringComparison.OrdinalIgnoreCase)) return "Sanal";
-        return "Diğer";
+            name.Equals("fortilink", StringComparison.OrdinalIgnoreCase)) return "Physical";
+        if (name.EndsWith(".root", StringComparison.OrdinalIgnoreCase)) return "Virtual";
+        return "Other";
     }
 
     private static string CleanDeviceName(string? description)
@@ -510,10 +510,10 @@ public sealed class SnmpMonitoringService : ISnmpMonitoringService
 
     private static string GetSafeErrorMessage(Exception exception) => exception switch
     {
-        Lextm.SharpSnmpLib.Messaging.TimeoutException => "FortiGate SNMP sorgusu zaman aşımına uğradı.",
-        SocketException => "FortiGate SNMP adresine ulaşılamadı.",
-        SnmpException => "FortiGate SNMPv3 verileri alınamadı veya doğrulanamadı.",
-        _ => "SNMP verileri alınırken beklenmeyen bir hata oluştu."
+        Lextm.SharpSnmpLib.Messaging.TimeoutException => "The FortiGate SNMP poll timed out.",
+        SocketException => "The FortiGate SNMP endpoint could not be reached.",
+        SnmpException => "FortiGate SNMPv3 data could not be retrieved or validated.",
+        _ => "An unexpected error occurred while retrieving SNMP data."
     };
 
     private sealed record CounterSample(ulong InOctets, ulong OutOctets, DateTimeOffset CollectedAt);

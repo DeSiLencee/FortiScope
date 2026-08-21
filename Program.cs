@@ -48,7 +48,7 @@ try
 }
 catch (Exception exception)
 {
-    app.Logger.LogError("SQLite migration uygulanamadı ({ExceptionType}). Uygulama SNMP izlemeye devam edecek.",
+    app.Logger.LogError("SQLite migration could not be applied ({ExceptionType}). The application will continue SNMP monitoring.",
         exception.GetType().Name);
 }
 
@@ -91,13 +91,13 @@ app.MapPost("/api/devices", async (
     CancellationToken cancellationToken) =>
 {
     if (string.IsNullOrWhiteSpace(request.Name))
-        return Results.BadRequest(new { error = "Device name zorunludur." });
+        return Results.BadRequest(new { error = "Device name is required." });
 
     if (string.IsNullOrWhiteSpace(request.IpAddress))
-        return Results.BadRequest(new { error = "IP address zorunludur." });
+        return Results.BadRequest(new { error = "IP address is required." });
 
     if (!System.Net.IPAddress.TryParse(request.IpAddress, out _))
-        return Results.BadRequest(new { error = "Geçerli bir IP address girilmelidir." });
+        return Results.BadRequest(new { error = "Invalid IP address." });
 
     await using var dbContext = await dbFactory.CreateDbContextAsync(cancellationToken);
 
@@ -105,7 +105,7 @@ app.MapPost("/api/devices", async (
         .AnyAsync(device => device.IpAddress == request.IpAddress, cancellationToken);
 
     if (exists)
-        return Results.Conflict(new { error = "Bu IP adresine sahip cihaz zaten kayıtlı." });
+        return Results.Conflict(new { error = "A device with this IP address is already registered." });
 
     var device = new Device
     {
@@ -131,7 +131,7 @@ app.MapGet("/api/devices/{id:int}", async (int id,
     await using var dbContext = await dbFactory.CreateDbContextAsync(cancellationToken);
     var device = await dbContext.Devices.AsNoTracking()
         .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
-    return device is null ? Results.NotFound(new { error = "Cihaz bulunamadı." }) : Results.Ok(device);
+    return device is null ? Results.NotFound(new { error = "Device not found." }) : Results.Ok(device);
 });
 
 app.MapPut("/api/devices/{id:int}", async (int id, DeviceRequest request,
@@ -143,12 +143,12 @@ app.MapPut("/api/devices/{id:int}", async (int id, DeviceRequest request,
 
     await using var dbContext = await dbFactory.CreateDbContextAsync(cancellationToken);
     var device = await dbContext.Devices.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
-    if (device is null) return Results.NotFound(new { error = "Cihaz bulunamadı." });
+    if (device is null) return Results.NotFound(new { error = "Device not found." });
 
     var ipAddress = request.IpAddress!.Trim();
     if (await dbContext.Devices.AsNoTracking().AnyAsync(item => item.Id != id && item.IpAddress == ipAddress,
         cancellationToken))
-        return Results.Conflict(new { error = "Bu IP adresine sahip başka bir cihaz zaten kayıtlı." });
+        return Results.Conflict(new { error = "Another device with this IP address is already registered." });
 
     device.Name = request.Name!.Trim();
     device.IpAddress = ipAddress;
@@ -179,7 +179,7 @@ app.MapDelete("/api/devices/{id:int}", async (int id,
 {
     await using var dbContext = await dbFactory.CreateDbContextAsync(cancellationToken);
     var device = await dbContext.Devices.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
-    if (device is null) return Results.NotFound(new { error = "Cihaz bulunamadı." });
+    if (device is null) return Results.NotFound(new { error = "Device not found." });
 
     await dbContext.AlertStates.Where(item => item.DeviceId == id).ExecuteDeleteAsync(cancellationToken);
     dbContext.Devices.Remove(device);
@@ -205,11 +205,11 @@ app.MapPost("/api/devices/{id:int}/test", async (
 
     if (device is null)
         return Results.NotFound(
-            new { error = "Cihaz bulunamadı." });
+            new { error = "Device not found." });
 
     if (!device.Enabled)
         return Results.BadRequest(
-            new { error = "Cihaz devre dışı." });
+            new { error = "Device is disabled." });
 
     if (!string.Equals(
             device.SnmpVersion,
@@ -217,13 +217,13 @@ app.MapPost("/api/devices/{id:int}/test", async (
             StringComparison.OrdinalIgnoreCase))
     {
         return Results.BadRequest(
-            new { error = "Şimdilik yalnızca SNMPv3 destekleniyor." });
+            new { error = "Only SNMPv3 is currently supported." });
     }
 
     if (string.IsNullOrWhiteSpace(device.SnmpUsername))
     {
         return Results.BadRequest(
-            new { error = "SNMPv3 username tanımlı değil." });
+            new { error = "SNMPv3 username is required." });
     }
 
     var result = await snmpService.TestConnectionAsync(
@@ -332,12 +332,12 @@ app.MapGet("/api/alerts/history", async (int? deviceId, string? severity, string
 {
     range = string.IsNullOrWhiteSpace(range) ? "24h" : range;
     if (!HistoryRangeParser.TryParse(range, out var duration))
-        return Results.BadRequest(new { error = "Geçersiz range. Desteklenen değerler: 5m, 1h, 6h, 24h, 7d, 30d." });
-    if (deviceId is <= 0) return Results.BadRequest(new { error = "deviceId pozitif olmalıdır." });
+        return Results.BadRequest(new { error = "Invalid range. Supported values: 5m, 1h, 6h, 24h, 7d, 30d." });
+    if (deviceId is <= 0) return Results.BadRequest(new { error = "deviceId must be positive." });
     if (!AlertHistoryQuery.IsValidSeverity(severity))
-        return Results.BadRequest(new { error = "Geçersiz severity. Desteklenen değerler: WARNING, CRITICAL, INFO." });
+        return Results.BadRequest(new { error = "Invalid severity. Supported values: WARNING, CRITICAL, INFO." });
     if (!AlertHistoryQuery.IsValidEventType(eventType))
-        return Results.BadRequest(new { error = "Geçersiz eventType. Desteklenen değerler: OPENED, ESCALATED, RECOVERED, REMINDER." });
+        return Results.BadRequest(new { error = "Invalid eventType. Supported values: OPENED, ESCALATED, RECOVERED, REMINDER." });
 
     var take = Math.Clamp(limit ?? 100, 1, 500);
     await using var dbContext = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -351,7 +351,7 @@ app.MapGet("/api/interfaces/top", async (int? limit,
     CancellationToken cancellationToken) =>
 {
     var take = limit ?? 5;
-    if (take is < 1 or > 20) return Results.BadRequest(new { error = "limit 1 ile 20 arasında olmalıdır." });
+    if (take is < 1 or > 20) return Results.BadRequest(new { error = "limit must be between 1 and 20." });
     await using var dbContext = await dbFactory.CreateDbContextAsync(cancellationToken);
     var devices = await dbContext.Devices.AsNoTracking().Where(item => item.Enabled)
         .ToListAsync(cancellationToken);
@@ -380,7 +380,7 @@ app.MapGet("/api/devices/{id:int}/monitoring/current", async (int id,
 {
     await using var dbContext = await dbFactory.CreateDbContextAsync(cancellationToken);
     if (!await dbContext.Devices.AsNoTracking().AnyAsync(device => device.Id == id, cancellationToken))
-        return Results.NotFound(new { error = "Cihaz bulunamadı." });
+        return Results.NotFound(new { error = "Device not found." });
 
     var snapshot = service.GetCurrent(id);
     return snapshot is null
@@ -409,7 +409,7 @@ app.MapGet("/api/devices/monitoring/current", async (
             SessionCount = snapshot?.SessionCount,
             ErrorMessage = snapshot is not null
                 ? snapshot.ErrorMessage
-                : device.Enabled ? "Waiting for first poll." : "Cihaz devre dışı."
+                : device.Enabled ? "Waiting for first poll." : "Device is disabled."
         };
     }));
 });
@@ -417,16 +417,16 @@ app.MapGet("/api/history/system", async (string? range, int? deviceId, string? d
     HistoryService service, CancellationToken cancellationToken) =>
 {
     if (!HistoryRangeParser.TryParse(range, out var duration))
-        return Results.BadRequest(new { error = "Geçersiz range. Desteklenen değerler: 5m, 1h, 6h, 24h, 7d, 30d." });
+        return Results.BadRequest(new { error = "Invalid range. Supported values: 5m, 1h, 6h, 24h, 7d, 30d." });
     return Results.Ok(await service.GetSystemHistoryAsync(duration, deviceId, deviceIp, cancellationToken));
 });
 app.MapGet("/api/history/interfaces/{interfaceIndex:int}", async (int interfaceIndex, string? range,
     int? deviceId, string? deviceIp,
     HistoryService service, CancellationToken cancellationToken) =>
 {
-    if (interfaceIndex < 1) return Results.BadRequest(new { error = "Interface index pozitif olmalıdır." });
+    if (interfaceIndex < 1) return Results.BadRequest(new { error = "Interface index must be positive." });
     if (!HistoryRangeParser.TryParse(range, out var duration))
-        return Results.BadRequest(new { error = "Geçersiz range. Desteklenen değerler: 5m, 1h, 6h, 24h, 7d, 30d." });
+        return Results.BadRequest(new { error = "Invalid range. Supported values: 5m, 1h, 6h, 24h, 7d, 30d." });
     return Results.Ok(await service.GetInterfaceHistoryAsync(interfaceIndex, duration, deviceId, deviceIp,
         cancellationToken));
 });
