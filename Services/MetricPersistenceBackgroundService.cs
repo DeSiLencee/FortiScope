@@ -14,7 +14,8 @@ public sealed class MetricPersistenceBackgroundService(
 {
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(Math.Max(1, options.Value.PersistenceIntervalSeconds));
     private readonly int _retentionDays = Math.Max(1, options.Value.RetentionDays);
-    private string? _lastSnapshotKey;
+    private readonly int _alertEventRetentionDays = Math.Max(1, options.Value.AlertEventRetentionDays);
+    private readonly Dictionary<int, string> _lastSnapshotKeys = new();
     private DateTimeOffset _nextRetentionUtc = DateTimeOffset.MinValue;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -31,37 +32,40 @@ public sealed class MetricPersistenceBackgroundService(
         try
         {
             await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-            var snapshot = monitoringService.GetCurrent();
-            var key = MetricPersistencePolicy.GetSnapshotKey(snapshot);
-            if (MetricPersistencePolicy.ShouldPersist(key, _lastSnapshotKey))
+            foreach (var (deviceId, snapshot) in monitoringService.GetAllCurrent())
             {
-                var deviceSample = MetricPersistencePolicy.CreateDeviceSample(snapshot, DateTimeOffset.UtcNow);
-                var alreadyExists = await dbContext.DeviceMetricSamples.AsNoTracking().AnyAsync(item =>
-                    item.DeviceIp == deviceSample.DeviceIp && item.TimestampUtc == deviceSample.TimestampUtc,
-                    cancellationToken);
-
-                if (!alreadyExists)
+                var key = MetricPersistencePolicy.GetSnapshotKey(snapshot);
+                _lastSnapshotKeys.TryGetValue(deviceId, out var lastSnapshotKey);
+                if (MetricPersistencePolicy.ShouldPersist(key, lastSnapshotKey))
                 {
-                    dbContext.DeviceMetricSamples.Add(deviceSample);
-                    if (snapshot.Connected)
+                    var deviceSample = MetricPersistencePolicy.CreateDeviceSample(snapshot, DateTimeOffset.UtcNow);
+                    var alreadyExists = await dbContext.DeviceMetricSamples.AsNoTracking().AnyAsync(item =>
+                        item.DeviceIp == deviceSample.DeviceIp && item.TimestampUtc == deviceSample.TimestampUtc,
+                        cancellationToken);
+
+                    if (!alreadyExists)
                     {
-                        dbContext.InterfaceMetricSamples.AddRange(snapshot.Interfaces.Select(item => new InterfaceMetricSample
+                        dbContext.DeviceMetricSamples.Add(deviceSample);
+                        if (snapshot.Connected)
                         {
-                            DeviceIp = snapshot.DeviceIp,
-                            InterfaceIndex = item.Index,
-                            InterfaceName = item.Name,
-                            TimestampUtc = deviceSample.TimestampUtc,
-                            AdminStatus = item.AdminStatus,
-                            OperStatus = item.OperStatus,
-                            IncomingMbps = item.IncomingMbps,
-                            OutgoingMbps = item.OutgoingMbps,
-                            TotalMbps = item.TotalMbps,
-                            UtilizationPercent = item.UtilizationPercent
-                        }));
+                            dbContext.InterfaceMetricSamples.AddRange(snapshot.Interfaces.Select(item => new InterfaceMetricSample
+                            {
+                                DeviceIp = snapshot.DeviceIp,
+                                InterfaceIndex = item.Index,
+                                InterfaceName = item.Name,
+                                TimestampUtc = deviceSample.TimestampUtc,
+                                AdminStatus = item.AdminStatus,
+                                OperStatus = item.OperStatus,
+                                IncomingMbps = item.IncomingMbps,
+                                OutgoingMbps = item.OutgoingMbps,
+                                TotalMbps = item.TotalMbps,
+                                UtilizationPercent = item.UtilizationPercent
+                            }));
+                        }
+                        await dbContext.SaveChangesAsync(cancellationToken);
                     }
-                    await dbContext.SaveChangesAsync(cancellationToken);
+                    _lastSnapshotKeys[deviceId] = key;
                 }
-                _lastSnapshotKey = key;
             }
 
             if (DateTimeOffset.UtcNow >= _nextRetentionUtc)
@@ -70,6 +74,9 @@ public sealed class MetricPersistenceBackgroundService(
                 await dbContext.InterfaceMetricSamples.Where(item => item.TimestampUtc < cutoff)
                     .ExecuteDeleteAsync(cancellationToken);
                 await dbContext.DeviceMetricSamples.Where(item => item.TimestampUtc < cutoff)
+                    .ExecuteDeleteAsync(cancellationToken);
+                var alertCutoff = DateTime.UtcNow.AddDays(-_alertEventRetentionDays);
+                await dbContext.AlertEvents.Where(item => item.OccurredAtUtc < alertCutoff)
                     .ExecuteDeleteAsync(cancellationToken);
                 _nextRetentionUtc = DateTimeOffset.UtcNow.AddHours(6);
             }

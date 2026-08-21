@@ -3,6 +3,7 @@ using System;
 using FortiScope.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FortiScope.Data.Migrations
 {
     [DbContext(typeof(FortiScopeDbContext))]
-    partial class FortiScopeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260820130526_AddAlertSettings")]
+    partial class AddAlertSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.22");
@@ -38,9 +41,6 @@ namespace FortiScope.Data.Migrations
                     b.Property<int>("MemoryWarningPercent")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("InterfaceUtilizationCriticalPercent").HasColumnType("INTEGER");
-                    b.Property<int>("InterfaceUtilizationWarningPercent").HasColumnType("INTEGER");
-
                     b.Property<int>("OfflineTimeoutSeconds")
                         .HasColumnType("INTEGER");
 
@@ -50,68 +50,6 @@ namespace FortiScope.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("AlertSettings", (string)null);
-                });
-
-            modelBuilder.Entity("FortiScope.Data.Entities.AlertEvent", b =>
-                {
-                    b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("INTEGER");
-                    b.Property<string>("AlertType").IsRequired().HasMaxLength(64).HasColumnType("TEXT");
-                    b.Property<int>("DeviceId").HasColumnType("INTEGER");
-                    b.Property<string>("DeviceIp").IsRequired().HasMaxLength(64).HasColumnType("TEXT");
-                    b.Property<string>("DeviceName").IsRequired().HasMaxLength(256).HasColumnType("TEXT");
-                    b.Property<string>("EventType").IsRequired().HasMaxLength(16).HasColumnType("TEXT");
-                    b.Property<string>("Message").IsRequired().HasMaxLength(1000).HasColumnType("TEXT");
-                    b.Property<double?>("MetricValue").HasColumnType("REAL");
-                    b.Property<int?>("InterfaceIndex").HasColumnType("INTEGER");
-                    b.Property<string>("InterfaceName").HasMaxLength(256).HasColumnType("TEXT");
-                    b.Property<DateTime>("OccurredAtUtc").HasColumnType("TEXT");
-                    b.Property<string>("Severity").IsRequired().HasMaxLength(16).HasColumnType("TEXT");
-                    b.Property<double?>("ThresholdValue").HasColumnType("REAL");
-                    b.HasKey("Id");
-                    b.HasIndex("AlertType");
-                    b.HasIndex("DeviceId", "OccurredAtUtc");
-                    b.HasIndex("OccurredAtUtc");
-                    b.HasIndex("Severity");
-                    b.ToTable("AlertEvents");
-                });
-
-            modelBuilder.Entity("FortiScope.Data.Entities.AlertState", b =>
-                {
-                    b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("INTEGER");
-                    b.Property<string>("AlertType").IsRequired().HasMaxLength(64).HasColumnType("TEXT");
-                    b.Property<int>("DeviceId").HasColumnType("INTEGER");
-                    b.Property<DateTime>("FirstTriggeredUtc").HasColumnType("TEXT");
-                    b.Property<bool>("IsActive").HasColumnType("INTEGER");
-                    b.Property<DateTime?>("LastNotificationUtc").HasColumnType("TEXT");
-                    b.Property<DateTime>("LastTriggeredUtc").HasColumnType("TEXT");
-                    b.Property<double?>("LastValue").HasColumnType("REAL");
-                    b.Property<int?>("InterfaceIndex").HasColumnType("INTEGER");
-                    b.Property<string>("InterfaceName").HasMaxLength(256).HasColumnType("TEXT");
-                    b.Property<string>("Severity").IsRequired().HasMaxLength(16).HasColumnType("TEXT");
-                    b.Property<string>("StateKey").IsRequired().HasMaxLength(32).HasColumnType("TEXT");
-                    b.HasKey("Id");
-                    b.HasIndex("DeviceId", "StateKey").IsUnique();
-                    b.ToTable("AlertStates");
-                });
-
-            modelBuilder.Entity("FortiScope.Data.Entities.EmailSettings", b =>
-                {
-                    b.Property<int>("Id").ValueGeneratedOnAdd().HasColumnType("INTEGER");
-                    b.Property<int>("CooldownMinutes").HasColumnType("INTEGER");
-                    b.Property<bool>("Enabled").HasColumnType("INTEGER");
-                    b.Property<string>("FromAddress").HasMaxLength(320).HasColumnType("TEXT");
-                    b.Property<string>("PasswordEncrypted").HasMaxLength(2048).HasColumnType("TEXT");
-                    b.Property<bool>("SendCriticalAlerts").HasColumnType("INTEGER");
-                    b.Property<bool>("SendRecoveryNotifications").HasColumnType("INTEGER");
-                    b.Property<bool>("SendWarningAlerts").HasColumnType("INTEGER");
-                    b.Property<string>("SmtpHost").HasMaxLength(256).HasColumnType("TEXT");
-                    b.Property<int>("SmtpPort").HasColumnType("INTEGER");
-                    b.Property<string>("ToAddress").HasMaxLength(1000).HasColumnType("TEXT");
-                    b.Property<bool>("UseSsl").HasColumnType("INTEGER");
-                    b.Property<string>("Username").HasMaxLength(256).HasColumnType("TEXT");
-                    b.Property<DateTime>("UpdatedAtUtc").HasColumnType("TEXT");
-                    b.HasKey("Id");
-                    b.ToTable("EmailSettings");
                 });
 
             modelBuilder.Entity("FortiScope.Data.Entities.Device", b =>

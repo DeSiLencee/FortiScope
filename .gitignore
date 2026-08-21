@@ -1,0 +1,38 @@
+# .NET build and test output
+**/bin/
+**/obj/
+**/TestResults/
+artifacts/
+
+# Runtime data
+Data/*.db
+Data/*.db-shm
+Data/*.db-wal
+Data/keys/
+*.db
+*.db-shm
+*.db-wal
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+secrets.json
+**/secrets.json
+
+# IDE and operating-system files
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+*.swo

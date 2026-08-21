@@ -17,12 +17,14 @@ public sealed class HistoryService(IDbContextFactory<FortiScopeDbContext> dbCont
     private const int MaxPoints = 500;
 
     public async Task<IReadOnlyList<SystemHistoryPoint>> GetSystemHistoryAsync(TimeSpan range,
-        CancellationToken cancellationToken)
+        int? deviceId, string? deviceIp, CancellationToken cancellationToken)
     {
         var cutoff = DateTime.UtcNow.Subtract(range);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var selectedDeviceIp = await ResolveDeviceIpAsync(dbContext, deviceId, deviceIp, cancellationToken);
+        if (selectedDeviceIp is null) return [];
         var samples = await dbContext.DeviceMetricSamples.AsNoTracking()
-            .Where(item => item.DeviceIp == snmpOptions.Value.Host && item.TimestampUtc >= cutoff)
+            .Where(item => item.DeviceIp == selectedDeviceIp && item.TimestampUtc >= cutoff)
             .OrderBy(item => item.TimestampUtc)
             .Select(item => new SystemHistoryPoint(item.TimestampUtc, item.CpuUsage, item.MemoryUsage,
                 item.SessionCount, item.Connected))
@@ -31,18 +33,38 @@ public sealed class HistoryService(IDbContextFactory<FortiScopeDbContext> dbCont
     }
 
     public async Task<IReadOnlyList<InterfaceHistoryPoint>> GetInterfaceHistoryAsync(int interfaceIndex,
-        TimeSpan range, CancellationToken cancellationToken)
+        TimeSpan range, int? deviceId, string? deviceIp, CancellationToken cancellationToken)
     {
         var cutoff = DateTime.UtcNow.Subtract(range);
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var selectedDeviceIp = await ResolveDeviceIpAsync(dbContext, deviceId, deviceIp, cancellationToken);
+        if (selectedDeviceIp is null) return [];
         var samples = await dbContext.InterfaceMetricSamples.AsNoTracking()
-            .Where(item => item.DeviceIp == snmpOptions.Value.Host &&
+            .Where(item => item.DeviceIp == selectedDeviceIp &&
                            item.InterfaceIndex == interfaceIndex && item.TimestampUtc >= cutoff)
             .OrderBy(item => item.TimestampUtc)
             .Select(item => new InterfaceHistoryPoint(item.TimestampUtc, item.IncomingMbps,
                 item.OutgoingMbps, item.TotalMbps, item.TotalMbps, item.UtilizationPercent))
             .ToListAsync(cancellationToken);
         return DownsampleInterfaces(samples);
+    }
+
+    public Task<IReadOnlyList<SystemHistoryPoint>> GetSystemHistoryAsync(TimeSpan range,
+        CancellationToken cancellationToken) => GetSystemHistoryAsync(range, null, null, cancellationToken);
+
+    public Task<IReadOnlyList<InterfaceHistoryPoint>> GetInterfaceHistoryAsync(int interfaceIndex,
+        TimeSpan range, CancellationToken cancellationToken) =>
+        GetInterfaceHistoryAsync(interfaceIndex, range, null, null, cancellationToken);
+
+    private async Task<string?> ResolveDeviceIpAsync(FortiScopeDbContext dbContext, int? deviceId,
+        string? deviceIp, CancellationToken cancellationToken)
+    {
+        if (deviceId.HasValue)
+            return await dbContext.Devices.AsNoTracking()
+                .Where(device => device.Id == deviceId.Value)
+                .Select(device => device.IpAddress)
+                .FirstOrDefaultAsync(cancellationToken);
+        return string.IsNullOrWhiteSpace(deviceIp) ? snmpOptions.Value.Host : deviceIp.Trim();
     }
 
     private static IReadOnlyList<SystemHistoryPoint> DownsampleSystem(IReadOnlyList<SystemHistoryPoint> samples)

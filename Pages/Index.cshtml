@@ -11,11 +11,63 @@
             <h1>Ağ İzleme Paneli</h1>
             <p class="heading-copy">FortiGate cihazınızın performansını ve port trafiğini anlık izleyin.</p>
         </div>
-        <div class="device-card">
-            <span class="device-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7.5h16v9H4zM8 11h2m2 0h2m2 0h1M7 16.5v2m10-2v2"/></svg></span>
-            <div><span class="device-name" id="deviceName">FortiGate-ARM64-KVM</span><span class="device-ip" id="deviceIp">192.168.64.2</span></div>
-            <span class="connection-status is-disconnected" id="deviceStatus"><i></i> Bağlantı bekleniyor</span>
+        <div class="dashboard-heading-actions">
+            <button type="button" class="add-fortigate-button" id="openAddDeviceModal"><span class="add-fortigate-icon" aria-hidden="true">+</span><span>Add FortiGate</span></button>
+            <div class="device-card">
+                <span class="device-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7.5h16v9H4zM8 11h2m2 0h2m2 0h1M7 16.5v2m10-2v2"/></svg></span>
+                <div><span class="device-name" id="deviceName">FortiGate-ARM64-KVM</span><span class="device-ip" id="deviceIp">192.168.64.2</span></div>
+                <span class="connection-status is-disconnected" id="deviceStatus"><i></i> Bağlantı bekleniyor</span>
+            </div>
         </div>
+    </section>
+
+    <section class="overview-section" aria-labelledby="overviewTitle">
+        <div class="overview-title-row"><div><p class="eyebrow">FLEET HEALTH</p><h2 id="overviewTitle">Overview</h2></div><span id="overviewStatus">Monitoring unavailable</span></div>
+        <div class="overview-grid" id="overviewGrid">
+            <article><span>Total Devices</span><strong>--</strong></article>
+            <article><span>Online</span><strong>--</strong></article>
+            <article><span>Offline</span><strong>--</strong></article>
+            <article><span>Warning</span><strong>--</strong></article>
+            <article><span>Critical</span><strong>--</strong></article>
+        </div>
+    </section>
+
+    <section class="panel top-interfaces-panel" aria-labelledby="topInterfacesTitle">
+        <div class="panel-heading"><div><p class="eyebrow">FLEET TRAFFIC</p><h2 id="topInterfacesTitle">Top Interfaces</h2></div><span class="live-badge"><i></i> Live</span></div>
+        <div class="top-interfaces-list" id="topInterfacesList"><p class="fleet-alerts-empty">Interface verileri bekleniyor…</p></div>
+    </section>
+
+    <section class="panel fleet-alerts-panel" aria-labelledby="fleetAlertsTitle">
+        <div class="panel-heading">
+            <div><p class="eyebrow">NETWORK OPERATIONS</p><h2 id="fleetAlertsTitle">Active Alerts</h2></div>
+            <div class="fleet-alert-heading-actions"><button type="button" class="alert-settings-button" id="openAlertSettings"><span aria-hidden="true">⚙</span> Alert Settings</button><button type="button" class="alert-settings-button" id="openEmailSettings"><span aria-hidden="true">✉</span> Email Notifications</button><span class="alert-count" id="fleetAlertCount">0</span></div>
+        </div>
+        <div class="fleet-alerts-list" id="fleetAlertsList"><p class="fleet-alerts-empty">Monitoring verileri bekleniyor…</p></div>
+    </section>
+
+    <section class="panel alert-history-panel" aria-labelledby="alertHistoryTitle">
+        <div class="panel-heading alert-history-heading">
+            <div><p class="eyebrow">AUDIT TRAIL</p><h2 id="alertHistoryTitle">Alert History</h2></div>
+            <div class="alert-history-filters">
+                <label>Device<select id="alertHistoryDevice"><option value="">All Devices</option></select></label>
+                <label>Severity<select id="alertHistorySeverity"><option value="">All</option><option value="WARNING">Warning</option><option value="CRITICAL">Critical</option></select></label>
+                <label>Event<select id="alertHistoryEvent"><option value="">All</option><option value="OPENED">Opened</option><option value="ESCALATED">Escalated</option><option value="RECOVERED">Recovered</option></select></label>
+                <label>Range<select id="alertHistoryRange"><option value="1h">1h</option><option value="24h" selected>24h</option><option value="7d">7d</option><option value="30d">30d</option></select></label>
+            </div>
+        </div>
+        <div class="table-wrap alert-history-table-wrap"><table class="alert-history-table">
+            <thead><tr><th>Time</th><th>Device</th><th>Event</th><th>Alert</th><th>Severity</th><th>Value</th><th>Message</th></tr></thead>
+            <tbody id="alertHistoryBody"><tr><td colspan="7" class="loading-cell">Alert history yükleniyor…</td></tr></tbody>
+        </table></div>
+    </section>
+
+    <section class="panel devices-panel" aria-labelledby="registeredDevicesTitle">
+        <div class="panel-heading">
+            <div><p class="eyebrow">ENVANTER</p><h2 id="registeredDevicesTitle">Kayıtlı FortiGate Cihazları</h2></div>
+            <span class="device-count" id="deviceCount">0</span>
+        </div>
+        <div class="device-management-status" id="deviceManagementStatus" role="status" aria-live="polite"></div>
+        <div class="device-list" id="deviceList"><p class="device-list-message">Cihazlar yükleniyor…</p></div>
     </section>
 
     <section class="metric-grid" aria-label="Cihaz ölçümleri">
@@ -91,6 +143,142 @@
         </aside>
     </div>
     <p class="last-update">Son güncelleme: <time id="lastUpdated">--:--:--</time><span id="connectionMessage"></span></p>
+</div>
+
+<div class="modal-backdrop fortiscope-modal-overlay" id="addDeviceModal" hidden>
+    <section class="device-modal fortiscope-modal" role="dialog" aria-modal="true" aria-labelledby="addDeviceTitle">
+        <div class="device-modal-heading fortiscope-modal-header">
+            <div><p class="eyebrow">YENİ CİHAZ</p><h2 id="addDeviceTitle">Add FortiGate</h2></div>
+            <button type="button" class="modal-close fortiscope-modal-close" id="closeAddDeviceModal" aria-label="Pencereyi kapat">×</button>
+        </div>
+        <form class="fortiscope-device-form" id="addDeviceForm">
+            <div class="device-form-grid fortiscope-device-form-grid">
+                <label>Device Name<input id="deviceFormName" name="name" type="text" required autocomplete="off" /></label>
+                <label>IP Address<input name="ipAddress" type="text" required inputmode="decimal" placeholder="192.168.1.1" autocomplete="off" /></label>
+                <label>SNMP Version<select name="snmpVersion"><option value="v3">v3</option></select></label>
+                <label>SNMP Username<input name="snmpUsername" type="text" required autocomplete="off" /></label>
+                <label>Authentication Protocol<select name="authProtocol"><option value="SHA1">SHA1</option></select></label>
+                <label>Privacy Protocol<select name="privacyProtocol"><option value="AES128">AES128</option></select></label>
+            </div>
+            <label class="enabled-field fortiscope-enabled-field"><input name="enabled" type="checkbox" checked /> Enabled</label>
+            <div class="device-form-status" id="deviceFormStatus" role="status" aria-live="polite"></div>
+            <div class="device-form-actions fortiscope-modal-actions">
+                <button type="button" class="secondary-button fortiscope-secondary-button" id="cancelAddDevice">Cancel</button>
+                <button type="submit" class="primary-button fortiscope-primary-button" id="addDeviceSubmit">Add Device</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<div class="fortiscope-modal-overlay" id="editDeviceModal" hidden>
+    <section class="device-modal fortiscope-modal" role="dialog" aria-modal="true" aria-labelledby="editDeviceTitle">
+        <div class="fortiscope-modal-header">
+            <div><p class="eyebrow">EDIT DEVICE</p><h2 id="editDeviceTitle">Edit FortiGate</h2></div>
+            <button type="button" class="fortiscope-modal-close" id="closeEditDeviceModal" aria-label="Edit device penceresini kapat">×</button>
+        </div>
+        <form class="fortiscope-device-form" id="editDeviceForm">
+            <div class="fortiscope-device-form-grid">
+                <label>Device Name<input name="name" type="text" required autocomplete="off" /></label>
+                <label>IP Address<input name="ipAddress" type="text" required inputmode="decimal" autocomplete="off" /></label>
+                <label>SNMP Version<select name="snmpVersion"><option value="v3">v3</option></select></label>
+                <label>SNMP Username<input name="snmpUsername" type="text" required autocomplete="off" /></label>
+                <label>Authentication Protocol<select name="authProtocol"><option value="SHA1">SHA1</option></select></label>
+                <label>Privacy Protocol<select name="privacyProtocol"><option value="AES128">AES128</option></select></label>
+            </div>
+            <label class="fortiscope-enabled-field"><input name="enabled" type="checkbox" /> Enabled</label>
+            <div class="device-form-status" id="editDeviceStatus" role="status" aria-live="polite"></div>
+            <div class="fortiscope-modal-actions">
+                <button type="button" class="fortiscope-secondary-button" id="cancelEditDevice">Cancel</button>
+                <button type="submit" class="fortiscope-primary-button" id="saveEditDevice">Save Changes</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<div class="fortiscope-modal-overlay" id="deleteDeviceModal" hidden>
+    <section class="fortiscope-modal delete-device-modal" role="alertdialog" aria-modal="true" aria-labelledby="deleteDeviceTitle">
+        <div class="fortiscope-modal-header">
+            <div><p class="eyebrow is-danger">DELETE DEVICE</p><h2 id="deleteDeviceTitle">Delete FortiGate?</h2></div>
+            <button type="button" class="fortiscope-modal-close" id="closeDeleteDeviceModal" aria-label="Delete confirmation penceresini kapat">×</button>
+        </div>
+        <div class="delete-device-content">
+            <p>Device:</p><strong id="deleteDeviceName">--</strong><span id="deleteDeviceIp">--</span>
+            <p class="delete-device-warning">This will remove the device from FortiScope monitoring. Existing historical metrics and alert events will be retained.</p>
+            <div class="device-form-status" id="deleteDeviceStatus" role="status" aria-live="polite"></div>
+            <div class="fortiscope-modal-actions">
+                <button type="button" class="fortiscope-secondary-button" id="cancelDeleteDevice">Cancel</button>
+                <button type="button" class="fortiscope-danger-button" id="confirmDeleteDevice">Delete Device</button>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="fortiscope-modal-overlay" id="alertSettingsModal" hidden>
+    <section class="fortiscope-modal alert-settings-modal" role="dialog" aria-modal="true" aria-labelledby="alertSettingsTitle">
+        <div class="fortiscope-modal-header">
+            <div><p class="eyebrow">ALERT MANAGEMENT</p><h2 id="alertSettingsTitle">Alert Settings</h2></div>
+            <button type="button" class="fortiscope-modal-close" id="closeAlertSettings" aria-label="Alert Settings penceresini kapat">×</button>
+        </div>
+        <form class="fortiscope-device-form alert-settings-form" id="alertSettingsForm">
+            <div class="alert-settings-grid">
+                <fieldset><legend>CPU Thresholds</legend><div class="threshold-fields">
+                    <label for="cpuWarningPercent">Warning<span><input id="cpuWarningPercent" name="cpuWarningPercent" type="number" min="1" max="99" required /><i>%</i></span></label>
+                    <label for="cpuCriticalPercent">Critical<span><input id="cpuCriticalPercent" name="cpuCriticalPercent" type="number" min="1" max="100" required /><i>%</i></span></label>
+                </div></fieldset>
+                <fieldset><legend>Memory Thresholds</legend><div class="threshold-fields">
+                    <label for="memoryWarningPercent">Warning<span><input id="memoryWarningPercent" name="memoryWarningPercent" type="number" min="1" max="99" required /><i>%</i></span></label>
+                    <label for="memoryCriticalPercent">Critical<span><input id="memoryCriticalPercent" name="memoryCriticalPercent" type="number" min="1" max="100" required /><i>%</i></span></label>
+                </div></fieldset>
+                <fieldset><legend>Interface Traffic</legend><div class="threshold-fields">
+                    <label for="interfaceUtilizationWarningPercent">Warning<span><input id="interfaceUtilizationWarningPercent" name="interfaceUtilizationWarningPercent" type="number" min="1" max="99" required /><i>%</i></span></label>
+                    <label for="interfaceUtilizationCriticalPercent">Critical<span><input id="interfaceUtilizationCriticalPercent" name="interfaceUtilizationCriticalPercent" type="number" min="1" max="100" required /><i>%</i></span></label>
+                </div></fieldset>
+            </div>
+            <fieldset class="connectivity-settings"><legend>Connectivity</legend>
+                <label for="offlineTimeoutSeconds">Mark device offline after<span><input id="offlineTimeoutSeconds" name="offlineTimeoutSeconds" type="number" min="10" max="3600" required /><i>seconds</i></span></label>
+            </fieldset>
+            <label class="fortiscope-enabled-field alert-settings-enabled"><input name="enabled" type="checkbox" checked /> Alerts Enabled</label>
+            <div class="device-form-status" id="alertSettingsStatus" role="status" aria-live="polite"></div>
+            <div class="fortiscope-modal-actions">
+                <button type="button" class="fortiscope-secondary-button" id="cancelAlertSettings">Cancel</button>
+                <button type="submit" class="fortiscope-primary-button" id="saveAlertSettings">Save Settings</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<div class="fortiscope-modal-overlay" id="emailSettingsModal" hidden>
+    <section class="fortiscope-modal email-settings-modal" role="dialog" aria-modal="true" aria-labelledby="emailSettingsTitle">
+        <div class="fortiscope-modal-header">
+            <div><p class="eyebrow">NOTIFICATIONS</p><h2 id="emailSettingsTitle">Email Notifications</h2></div>
+            <button type="button" class="fortiscope-modal-close" id="closeEmailSettings" aria-label="Email Notifications penceresini kapat">×</button>
+        </div>
+        <form class="fortiscope-device-form email-settings-form" id="emailSettingsForm">
+            <label class="fortiscope-enabled-field email-master-toggle"><input name="enabled" type="checkbox" /><span><strong>Enable Email Notifications</strong><small id="emailSettingsState">Disabled</small></span></label>
+            <div class="email-settings-grid">
+                <label>SMTP Host<input name="smtpHost" type="text" autocomplete="off" placeholder="smtp.example.com" /></label>
+                <label>SMTP Port<input name="smtpPort" type="number" min="1" max="65535" value="587" required /></label>
+                <label>Username<input name="username" type="text" autocomplete="username" /></label>
+                <label>Password<input name="password" type="password" autocomplete="new-password" placeholder="Leave blank to keep saved password" /><small id="emailPasswordHint"></small></label>
+                <label>From Address<input name="fromAddress" type="email" placeholder="alerts@example.com" /></label>
+                <label>To Address<input name="toAddress" type="email" placeholder="admin@example.com" /></label>
+                <label>Cooldown Minutes<input name="cooldownMinutes" type="number" min="1" max="1440" value="15" required /></label>
+                <label class="email-checkbox-field"><input name="useSsl" type="checkbox" checked /> Use SSL</label>
+            </div>
+            <div class="email-options-grid">
+                <label><input name="sendCriticalAlerts" type="checkbox" checked /> Send Critical Alerts</label>
+                <label><input name="sendWarningAlerts" type="checkbox" /> Send Warning Alerts</label>
+                <label><input name="sendRecoveryNotifications" type="checkbox" checked /> Send Recovery Notifications</label>
+            </div>
+            <div class="device-form-status" id="emailSettingsStatus" role="status" aria-live="polite"></div>
+            <div class="fortiscope-modal-actions email-modal-actions">
+                <button type="button" class="fortiscope-secondary-button test-email-button" id="testEmailSettings">Test Email</button>
+                <span class="email-action-spacer"></span>
+                <button type="button" class="fortiscope-secondary-button" id="cancelEmailSettings">Cancel</button>
+                <button type="submit" class="fortiscope-primary-button" id="saveEmailSettings">Save Settings</button>
+            </div>
+        </form>
+    </section>
 </div>
 
 @section Scripts {
